@@ -1,3 +1,3 @@
-import { Add } from './Add.js';
+import { NameService } from './NameService.js';
 
-export { Add };
+export { NameService };

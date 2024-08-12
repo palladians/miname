@@ -1,112 +1,144 @@
-/**
- * This script can be used to interact with the Add contract, after deploying it.
- *
- * We call the update() method on the contract, create a proof and send it to the chain.
- * The endpoint that we interact with is read from your config.json.
- *
- * This simulates a user interacting with the zkApp from a browser, except that here, sending the transaction happens
- * from the script and we're using your pre-funded zkApp account to pay the transaction fee. In a real web app, the user's wallet
- * would send the transaction and pay the fee.
- *
- * To run locally:
- * Build the project: `$ npm run build`
- * Run with node:     `$ node build/src/interact.js <deployAlias>`.
- */
-import fs from 'fs/promises';
-import { Mina, NetworkId, PrivateKey } from 'o1js';
-import { Add } from './Add.js';
+import { AccountUpdate, Field, Mina, PrivateKey, UInt64 } from 'o1js';
+import { NameService, NameRecord, offchainState, Name } from './NameService.js';
 
-// check command line arg
-let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.
+const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
+Mina.setActiveInstance(Local);
 
-Usage:
-node build/src/interact.js <deployAlias>
-`);
-Error.stackTraceLimit = 1000;
-const DEFAULT_NETWORK_ID = 'testnet';
+let tx;
+let [bob, alice] = Local.testAccounts;
 
-// parse config and private key from file
-type Config = {
-  deployAliases: Record<
-    string,
-    {
-      networkId?: string;
-      url: string;
-      keyPath: string;
-      fee: string;
-      feepayerKeyPath: string;
-      feepayerAlias: string;
-    }
-  >;
-};
-let configJson: Config = JSON.parse(await fs.readFile('config.json', 'utf8'));
-let config = configJson.deployAliases[deployAlias];
-let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.feepayerKeyPath, 'utf8')
-);
+const zkAppPrivateKey = PrivateKey.random();
+const zkAppAddress = zkAppPrivateKey.toPublicKey();
+let name_service_contract = new NameService(zkAppAddress);
+offchainState.setContractInstance(name_service_contract);
 
-let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.keyPath, 'utf8')
-);
+if (Local.proofsEnabled) {
+  console.time('compile program');
+  await offchainState.compile();
+  offchainState.setContractClass(NameService);
+  console.timeEnd('compile program');
+  console.time('compile contract');
+  await NameService.compile();
+  console.timeEnd('compile contract');
+}
 
-let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
+console.time('deploy');
+tx = await Mina.transaction(bob, async () => {
+  AccountUpdate.fundNewAccount(bob);
+  await name_service_contract.deploy();
+})
+  .prove()
+  .sign([bob.key, zkAppPrivateKey])
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('deploy');
 
-// set up Mina instance and contract we interact with
-const Network = Mina.Network({
-  // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
-  // This is to ensure the backward compatibility.
-  networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
-  mina: config.url,
-});
-// const Network = Mina.Network(config.url);
-const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
-Mina.setActiveInstance(Network);
-let feepayerAddress = feepayerKey.toPublicKey();
-let zkAppAddress = zkAppKey.toPublicKey();
-let zkApp = new Add(zkAppAddress);
+console.time('set premimum rate');
+await Mina.transaction(bob, async () => {
+  await name_service_contract.set_premium(UInt64.from(100));
+})
+  .sign([bob.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('register first name');
 
-// compile the contract to create prover keys
-console.log('compile the contract...');
-await Add.compile();
+console.time('settlement proof 1');
+let proof = await offchainState.createSettlementProof();
+console.timeEnd('settlement proof 1');
 
-try {
-  // call update() and send transaction
-  console.log('build transaction and create proof...');
-  let tx = await Mina.transaction(
-    { sender: feepayerAddress, fee },
-    async () => {
-      await zkApp.update();
-    }
+console.time('settle 1');
+await Mina.transaction(bob, () => name_service_contract.settle(proof))
+  .sign([bob.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('settle 1');
+
+console.time('register a name');
+tx = await Mina.transaction({ sender: alice, fee: 100 }, async () => {
+  let new_record = new NameRecord({
+    mina_address: alice,
+    avatar: Field(0),
+    url: Field(0),
+  });
+  await name_service_contract.register_name(
+    Name.fromString('boray.mina'),
+    new_record
   );
-  await tx.prove();
+})
+  .sign([alice.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('register a name');
 
-  console.log('send transaction...');
-  const sentTx = await tx.sign([feepayerKey]).send();
-  if (sentTx.status === 'pending') {
-    console.log(
-      '\nSuccess! Update transaction sent.\n' +
-        '\nYour smart contract state will be updated' +
-        '\nas soon as the transaction is included in a block:' +
-        `\n${getTxnUrl(config.url, sentTx.hash)}`
-    );
-  }
-} catch (err) {
-  console.log(err);
-}
+console.time('register another name for coby');
+tx = await Mina.transaction(alice, async () => {
+  let new_record = new NameRecord({
+    mina_address: alice,
+    avatar: Field(0),
+    url: Field(0),
+  });
+  await name_service_contract.register_name(
+    Name.fromString('coby.mina'),
+    new_record
+  );
+})
+  .sign([alice.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('register another name for coby');
 
-function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {
-  const hostName = new URL(graphQlUrl).hostname;
-  const txnBroadcastServiceName = hostName
-    .split('.')
-    .filter((item) => item === 'minascan')?.[0];
-  const networkName = graphQlUrl
-    .split('/')
-    .filter((item) => item === 'mainnet' || item === 'devnet')?.[0];
-  if (txnBroadcastServiceName && networkName) {
-    return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
-  }
-  return `Transaction hash: ${txnHash}`;
-}
+console.time('register another name for mahmoud');
+tx = await Mina.transaction(alice, async () => {
+  let new_record = new NameRecord({
+    mina_address: alice,
+    avatar: Field(0),
+    url: Field(0),
+  });
+  await name_service_contract.register_name(
+    Name.fromString('mahmoud.mina'),
+    new_record
+  );
+})
+  .sign([alice.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('register another name for mahmoud');
+
+console.time('settlement proof 2');
+proof = await offchainState.createSettlementProof();
+console.timeEnd('settlement proof 2');
+
+console.time('settle 2');
+await Mina.transaction(alice, () => name_service_contract.settle(proof))
+  .sign([alice.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+console.timeEnd('settle 2');
+
+console.time('get a name');
+await Mina.transaction(alice, async () => {
+  let new_record = new NameRecord({
+    mina_address: alice,
+    avatar: Field(0),
+    url: Field(0),
+  });
+  let res = await name_service_contract.resolve_name(
+    Name.fromString('boray.mina')
+  );
+  console.log(res);
+  res.mina_address.assertEquals(new_record.mina_address);
+  res.avatar.assertEquals(new_record.avatar);
+  res.url.assertEquals(new_record.url);
+})
+  .sign([alice.key])
+  .prove()
+  .send();
+console.log(tx.toPretty());
+
+console.timeEnd('get a name');

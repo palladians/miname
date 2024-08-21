@@ -6,7 +6,7 @@
   "types": "build/src/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node --experimental-vm-modules dist/index.js",
+    "start": "node --experimental-vm-modules build/src/index.js",
     "build": "tsc"
   },
   "author": "boray",

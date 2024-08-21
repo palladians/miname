@@ -1,5 +1,5 @@
 import fs from 'fs/promises';
-import { AccountUpdate, CircuitString, Field, Mina, NetworkId, PrivateKey, Struct, PublicKey, fetchAccount} from 'o1js';
+import { AccountUpdate, CircuitString, Field, Mina, NetworkId, PrivateKey, Struct, PublicKey, fetchAccount, UInt64} from 'o1js';
 import { NameService, offchainState,} from './NameService.js';
 
 
@@ -64,11 +64,10 @@ await NameService.compile();
 console.timeEnd('compile contract');
 
 
-console.time('deploy');
+console.time('set premium');
 try {
 tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-  AccountUpdate.fundNewAccount(feepayerAddress);
-  await name_service_contract.deploy();
+  await name_service_contract.set_premium(UInt64.from(100));
 })
 await tx.prove();
 console.log('send transaction...');
@@ -85,8 +84,7 @@ if (sentTx.status === 'pending') {
 catch (err) {
   console.log(err);
 }
-console.timeEnd('deploy');
-
+console.timeEnd('set premi');
 
 
 
@@ -94,9 +92,9 @@ function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {
     const txnBroadcastServiceName = new URL(graphQlUrl).hostname
       .split('.')
       .filter((item) => item === 'minascan' || item === 'minaexplorer')?.[0];
-    const networkName = new URL(graphQlUrl).hostname
-      .split('.')
-      .filter((item) => item === 'devnet' || item === 'testworld')?.[0];
+    const networkName = new URL(graphQlUrl).pathname
+      .split('/')
+      .filter((item) => item === 'devnet' || item === 'mainnet')?.[0];
     if (txnBroadcastServiceName && networkName) {
       return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
     }

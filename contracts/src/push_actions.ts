@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { AccountUpdate, CircuitString, Field, Mina, NetworkId, PrivateKey, Struct, PublicKey, fetchAccount} from 'o1js';
-import { NameService, offchainState,} from './NameService.js';
+import { NameService, offchainState, NameRecord, Name} from './NameService.js';
 
 
 let deployAlias = process.argv[2];
@@ -47,7 +47,7 @@ const Network = Mina.Network({
   networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
   mina: config.url,
 });
-const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
+const fee = Number(config.fee) * 1e11; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let tx;
 let feepayerAddress = feepayerKey.toPublicKey();
@@ -64,11 +64,37 @@ await NameService.compile();
 console.timeEnd('compile contract');
 
 
-console.time('deploy');
+console.time('register random name');
+let record1 = new NameRecord({
+  mina_address: feepayerAddress,
+  avatar: Field.random(),
+  url: Field.random(),
+});
+let record2 = new NameRecord({
+  mina_address: feepayerAddress,
+  avatar: Field.random(),
+  url: Field.random(),
+});
+let record3 = new NameRecord({
+  mina_address: feepayerAddress,
+  avatar: Field.random(),
+  url: Field.random(),
+});
+
 try {
 tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-  AccountUpdate.fundNewAccount(feepayerAddress);
-  await name_service_contract.deploy();
+  await name_service_contract.register_name(
+    Name.fromString('bob.mina'),
+    record1
+  );
+  await name_service_contract.register_name(
+    Name.fromString('alice.mina'),
+    record2
+  );
+  await name_service_contract.register_name(
+    Name.fromString('eve.mina'),
+    record3
+  );
 })
 await tx.prove();
 console.log('send transaction...');
@@ -85,22 +111,23 @@ if (sentTx.status === 'pending') {
 catch (err) {
   console.log(err);
 }
-console.timeEnd('deploy');
+console.timeEnd('register random name');
 
 
 
 
 function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {
-    const txnBroadcastServiceName = new URL(graphQlUrl).hostname
-      .split('.')
-      .filter((item) => item === 'minascan' || item === 'minaexplorer')?.[0];
-    const networkName = new URL(graphQlUrl).hostname
-      .split('.')
-      .filter((item) => item === 'devnet' || item === 'testworld')?.[0];
-    if (txnBroadcastServiceName && networkName) {
-      return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
-    }
-    return `Transaction hash: ${txnHash}`;
+  const txnBroadcastServiceName = new URL(graphQlUrl).hostname
+    .split('.')
+    .filter((item) => item === 'minascan' || item === 'minaexplorer')?.[0];
+  const networkName = new URL(graphQlUrl).pathname
+    .split('/')
+    .filter((item) => item === 'devnet' || item === 'mainnet')?.[0];
+  if (txnBroadcastServiceName && networkName) {
+    return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
   }
+  return `Transaction hash: ${txnHash}`;
+}
+
   
   

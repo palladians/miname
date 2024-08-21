@@ -131,7 +131,6 @@ await Mina.transaction(alice, async () => {
   let res = await name_service_contract.resolve_name(
     Name.fromString('boray.mina')
   );
-  console.log(res);
   res.mina_address.assertEquals(new_record.mina_address);
   res.avatar.assertEquals(new_record.avatar);
   res.url.assertEquals(new_record.url);

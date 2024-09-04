@@ -1,4 +1,7 @@
 import {
+  Mina,
+  NetworkId,
+  PrivateKey,
   Field,
   SmartContract,
   state,
@@ -11,11 +14,10 @@ import {
   UInt64,
   AccountUpdate,
 } from 'o1js';
-import { PackedStringFactory } from 'o1js-pack';
 
+export {  Mina, NetworkId, PrivateKey, Experimental, Field, UInt64 };
 const { OffchainState } = Experimental;
 
-export class Name extends PackedStringFactory() {}
 
 export class NameRecord extends Struct({
   mina_address: PublicKey,
@@ -39,7 +41,7 @@ class AdminChangedEvent extends Struct({
 
 export const offchainState = OffchainState(
   {
-    registry: OffchainState.Map(Name, NameRecord),
+    registry: OffchainState.Map(Field, NameRecord),
     premium: OffchainState.Field(UInt64),
   },
   { logTotalCapacity: 10, maxActionsPerProof: 5 }
@@ -83,7 +85,7 @@ export class NameService extends SmartContract {
    * @param record
    *
    */
-  @method async register_name(name: Name, record: NameRecord) {
+  @method async register_name(name: Field, record: NameRecord) {
     (await offchainState.fields.registry.get(name)).isSome.assertFalse(); // do we need this?
     let premium = await this.premium_rate();
     const sender = this.sender.getAndRequireSignature();
@@ -105,7 +107,7 @@ export class NameService extends SmartContract {
    * @param new_record
    *
    */
-  @method async set_record(name: Name, new_record: NameRecord) {
+  @method async set_record(name: Field, new_record: NameRecord) {
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -127,7 +129,7 @@ export class NameService extends SmartContract {
    * @param new_owner
    *
    */
-  @method async transfer_name_ownership(name: Name, new_owner: PublicKey) {
+  @method async transfer_name_ownership(name: Field, new_owner: PublicKey) {
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -148,7 +150,7 @@ export class NameService extends SmartContract {
    * @param name
    * @returns owner of given name
    */
-  @method.returns(PublicKey) async owner_of(name: Name) {
+  @method.returns(PublicKey) async owner_of(name: Field) {
     return (await offchainState.fields.registry.get(name)).assertSome(
       'this name is not owned'
     ).mina_address;
@@ -158,7 +160,7 @@ export class NameService extends SmartContract {
    * @param name
    * @returns full record associated with given name
    */
-  @method.returns(NameRecord) async resolve_name(name: Name) {
+  @method.returns(NameRecord) async resolve_name(name: Field) {
     return (await offchainState.fields.registry.get(name)).assertSome(
       'this name is not owned'
     );

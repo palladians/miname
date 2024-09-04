@@ -2,11 +2,13 @@ import fs from "fs/promises";
 import path from "path";
 
 import {
-  NameRecord,
   NameService,
+  NameRecord,
+  StateProof,
   offchainState,
+  Mina,
+  PrivateKey
 } from "../../contracts/build/src/NameService.js";
-import { Mina, NetworkId, PrivateKey } from "o1js";
 
 
 type Config = {
@@ -47,7 +49,6 @@ const fee = Number(config.fee) * 1e9;
 
 const nameservice = new NameService(zkAppAddress);
 offchainState.setContractInstance(nameservice);
-
 console.time("compile program");
 await offchainState.compile();
 console.timeEnd("compile program");
@@ -56,6 +57,7 @@ await NameService.compile();
 console.timeEnd("compile contract");
 
 let counter = 0;
+let proof: StateProof;
 
 settlementCycle();
 
@@ -77,23 +79,36 @@ async function settlementCycle() {
     let actions = 1;
     if (actions > 6 || counter > 10) {
       console.time("settlement proof");
-      let proof = await offchainState.createSettlementProof();
-      console.timeEnd("settlement proof");
-      let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-        nameservice.settle(proof);
-      });
-      await tx.prove();
-      const sentTx = await tx.sign([feepayerKey]).send();
-      sentTx.wait();
+      try {
+        proof = await offchainState.createSettlementProof();
+      } finally {
+        console.timeEnd("settlement proof");
+        try {
+          console.log('entered tx scope');
+          let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+            await nameservice.settle(proof);
+          })
+          await tx.prove();
+          console.log('send transaction...');
+          const sentTx = await tx.sign([feepayerKey,zkAppKey]).send();
+          console.log(sentTx.toPretty());
+          if (sentTx.status === 'pending') {
+            console.log(`https://minascan.io/devnet/tx/${sentTx.hash}?type=zk-tx`);
+  
+          }
+          counter = 0;
+          }
+          catch(error){
+            console.log(error);
+          }
+          counter = 0;
+      }
+      
     } else {
       counter++;
-      setTimeout(settlementCycle, 60000); 
+      setTimeout(settlementCycle, 60000);
     }
   } catch (error) {
     setTimeout(settlementCycle, 60000);
   }
 }
-
-
-
-

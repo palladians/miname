@@ -18,7 +18,6 @@ import {
 export {  Mina, NetworkId, PrivateKey, Experimental, Field, UInt64 };
 const { OffchainState } = Experimental;
 
-
 export class NameRecord extends Struct({
   mina_address: PublicKey,
   avatar: Field,

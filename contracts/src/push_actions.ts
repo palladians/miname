@@ -1,6 +1,6 @@
 import fs from 'fs/promises';
 import { AccountUpdate, CircuitString, Field, Mina, NetworkId, PrivateKey, Struct, PublicKey, fetchAccount} from 'o1js';
-import { NameService, offchainState, NameRecord, Name} from './NameService.js';
+import { NameService, offchainState, NameRecord} from './NameService.js';
 
 
 let deployAlias = process.argv[2];
@@ -83,18 +83,18 @@ let record3 = new NameRecord({
 
 try {
 tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-  await name_service_contract.register_name(
-    Name.fromString('bob.mina'),
-    record1
-  );
-  await name_service_contract.register_name(
-    Name.fromString('alice.mina'),
-    record2
-  );
-  await name_service_contract.register_name(
-    Name.fromString('eve.mina'),
-    record3
-  );
+  // await name_service_contract.register_name(
+  //   Name.fromString('bob.mina'),
+  //   record1
+  // );
+  // await name_service_contract.register_name(
+  //   Name.fromString('alice.mina'),
+  //   record2
+  // );
+  // await name_service_contract.register_name(
+  //   Name.fromString('eve.mina'),
+  //   record3
+  // );
 })
 await tx.prove();
 console.log('send transaction...');

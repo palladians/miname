@@ -36,12 +36,12 @@ async function settlementCycle({
     }
 }
 
-async function compile(zkAppKey: PrivateKey) {
+async function compile(zkAppKey: PrivateKey, minaEndpoint: string, archiveEndpoint: string) {
     let zkAppAddress = zkAppKey.toPublicKey();
 
     const Network = Mina.Network({
-    mina: "https://api.minascan.io/node/devnet/v1/graphql",
-    archive: "https://api.minascan.io/archive/devnet/v1/graphql",
+    mina: minaEndpoint,
+    archive: archiveEndpoint,
     });
     Mina.setActiveInstance(Network);
 

@@ -25,6 +25,7 @@
   "dependencies": {
     "@noble/ciphers": "^0.6.0",
     "@noble/hashes": "^1.5.0",
+    "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "mina-signer": "^3.0.7",
     "o1js": "^1.6.0",

@@ -14,11 +14,26 @@ import {
   UInt64,
   AccountUpdate,
 } from 'o1js';
+import { PackedStringFactory } from './o1js-pack/PackedString.js';
 
-export {  Mina, NetworkId, PrivateKey, Experimental, Field, UInt64 };
-const { OffchainState } = Experimental;
+export {
+  NameService,
+  NameRecord,
+  StateProof,
+  Name,
+  Mina,
+  offchainState,
+  type NameServiceOffchainState,
+  NetworkId,
+  PrivateKey,
+  Experimental,
+  Field,
+  UInt64,
+};
+const { OffchainState, OffchainStateCommitments } = Experimental;
 
-export class NameRecord extends Struct({
+class Name extends PackedStringFactory(31) {}
+class NameRecord extends Struct({
   mina_address: PublicKey,
   avatar: Field,
   url: Field,
@@ -30,6 +45,14 @@ export class NameRecord extends Struct({
       url: Field(0),
     });
   }
+
+  toJSON(): string {
+    return JSON.stringify({
+      mina_address: this.mina_address.toBase58(),
+      avatar: this.avatar.toString(),
+      url: this.url.toString(),
+    });
+  }
 }
 
 class PauseToggleEvent extends Struct({ was_paused: Bool, is_paused: Bool }) {}
@@ -38,7 +61,7 @@ class AdminChangedEvent extends Struct({
   new_admin: PublicKey,
 }) {}
 
-export const offchainState = OffchainState(
+const offchainState = OffchainState(
   {
     registry: OffchainState.Map(Field, NameRecord),
     premium: OffchainState.Field(UInt64),
@@ -46,9 +69,11 @@ export const offchainState = OffchainState(
   { logTotalCapacity: 10, maxActionsPerProof: 5 }
 );
 
-export class StateProof extends offchainState.Proof {}
+type NameServiceOffchainState = typeof offchainState;
 
-export class NameService extends SmartContract {
+class StateProof extends offchainState.Proof {}
+
+class NameService extends SmartContract {
   @state(OffchainState.Commitments) offchainState = offchainState.commitments();
   @state(PublicKey) admin = State<PublicKey>();
   @state(Bool) paused = State<Bool>();
@@ -60,6 +85,7 @@ export class NameService extends SmartContract {
 
   init() {
     super.init();
+    this.admin.set(this.sender.getAndRequireSignature());
   }
 
   /**

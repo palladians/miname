@@ -1,7 +1,17 @@
 import fs from 'fs/promises';
-import { AccountUpdate, CircuitString, Field, Mina, NetworkId, PrivateKey, Struct, PublicKey, fetchAccount, UInt64} from 'o1js';
-import { NameService, offchainState,} from './NameService.js';
-
+import {
+  AccountUpdate,
+  CircuitString,
+  Field,
+  Mina,
+  NetworkId,
+  PrivateKey,
+  Struct,
+  PublicKey,
+  fetchAccount,
+  UInt64,
+} from 'o1js';
+import { NameService, offchainState } from './NameService.js';
 
 let deployAlias = process.argv[2];
 if (!deployAlias)
@@ -43,7 +53,7 @@ let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
 const Network = Mina.Network({
   // We need to default to the testnet networkId if none is specified for this deploy alias in config.json
   // This is to ensure the backward compatibility.
-  archive: "https://api.minascan.io/archive/devnet/v1/graphql",
+  archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
   networkId: (config.networkId ?? DEFAULT_NETWORK_ID) as NetworkId,
   mina: config.url,
 });
@@ -63,42 +73,36 @@ console.time('compile contract');
 await NameService.compile();
 console.timeEnd('compile contract');
 
-
 console.time('set premium');
 try {
-tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-  await name_service_contract.set_premium(UInt64.from(100));
-})
-await tx.prove();
-console.log('send transaction...');
-const sentTx = await tx.sign([feepayerKey,zkAppKey]).send();
-if (sentTx.status === 'pending') {
-  console.log(
-    '\nSuccess! Update transaction sent.\n' +
-      '\nYour smart contract state will be updated' +
-      '\nas soon as the transaction is included in a block:' +
-      `\n${getTxnUrl(config.url, sentTx.hash)}`
-  );
-}
-}
-catch (err) {
+  tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
+    await name_service_contract.set_premium(UInt64.from(100));
+  });
+  await tx.prove();
+  console.log('send transaction...');
+  const sentTx = await tx.sign([feepayerKey, zkAppKey]).send();
+  if (sentTx.status === 'pending') {
+    console.log(
+      '\nSuccess! Update transaction sent.\n' +
+        '\nYour smart contract state will be updated' +
+        '\nas soon as the transaction is included in a block:' +
+        `\n${getTxnUrl(config.url, sentTx.hash)}`
+    );
+  }
+} catch (err) {
   console.log(err);
 }
 console.timeEnd('set premi');
 
-
-
 function getTxnUrl(graphQlUrl: string, txnHash: string | undefined) {
-    const txnBroadcastServiceName = new URL(graphQlUrl).hostname
-      .split('.')
-      .filter((item) => item === 'minascan' || item === 'minaexplorer')?.[0];
-    const networkName = new URL(graphQlUrl).pathname
-      .split('/')
-      .filter((item) => item === 'devnet' || item === 'mainnet')?.[0];
-    if (txnBroadcastServiceName && networkName) {
-      return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
-    }
-    return `Transaction hash: ${txnHash}`;
+  const txnBroadcastServiceName = new URL(graphQlUrl).hostname
+    .split('.')
+    .filter((item) => item === 'minascan' || item === 'minaexplorer')?.[0];
+  const networkName = new URL(graphQlUrl).pathname
+    .split('/')
+    .filter((item) => item === 'devnet' || item === 'mainnet')?.[0];
+  if (txnBroadcastServiceName && networkName) {
+    return `https://minascan.io/${networkName}/tx/${txnHash}?type=zk-tx`;
   }
-  
-  
+  return `Transaction hash: ${txnHash}`;
+}

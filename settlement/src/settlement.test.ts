@@ -1,5 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, MockInstance, vi } from "vitest";
-import { MAX_RETRIES_BEFORE_REDUCE, MIN_ACTIONS_TO_REDUCE, RETRY_WAIT_MS, settlementCycle } from "./settlement.js";
+import { settlementCycle } from "./settlement.js";
 import * as UtilsModule from "./utils.js";
 import * as NameServiceModule from "../../contracts/build/src/NameService.js";
 import { PrivateKey } from "o1js";
@@ -12,6 +12,11 @@ const feePayer = {
     sender: feepayerKey.toPublicKey(),
     fee: 1e9
 }
+const config = {
+    RETRY_WAIT_MS: 60_000,
+    MIN_ACTIONS_TO_REDUCE: 6,
+    MAX_RETRIES_BEFORE_REDUCE: 100
+  };
 const nameservice = new NameService(zkAppKey.toPublicKey());
 
 describe('Settlement', () => {
@@ -49,7 +54,7 @@ describe('Settlement', () => {
             });
 
             describe('with fewer than the minimum required actions to reduce', () => {
-                const actionsCount = MIN_ACTIONS_TO_REDUCE - 1;
+                const actionsCount = config.MIN_ACTIONS_TO_REDUCE - 1;
 
                 it('does not reduce actions and enqueues a retry with count + 1', async () => {
                     await setupAndTestSettlement({
@@ -62,7 +67,7 @@ describe('Settlement', () => {
             });
 
             describe('with more than the minimum required actions to reduce', () => {
-                const actionsCount = MIN_ACTIONS_TO_REDUCE - 1;
+                const actionsCount = config.MIN_ACTIONS_TO_REDUCE - 1;
 
                 it('does not reduce actions and enqueues a retry with count + 1', async () => {
                     await setupAndTestSettlement({
@@ -76,7 +81,7 @@ describe('Settlement', () => {
         });
 
         describe('with fewer than the max retries needed before reducing', () => {
-            const counter = MAX_RETRIES_BEFORE_REDUCE - 1;
+            const counter = config.MAX_RETRIES_BEFORE_REDUCE - 1;
 
             describe('with no actions to reduce', () => {
                 const actionsCount = 0;
@@ -92,7 +97,7 @@ describe('Settlement', () => {
             });
 
             describe('with fewer than the minimum required actions to reduce', () => {
-                const actionsCount = MIN_ACTIONS_TO_REDUCE - 1;
+                const actionsCount = config.MIN_ACTIONS_TO_REDUCE - 1;
 
                 it('does not reduce actions and enqueues a retry with count + 1', async () => {
                     await setupAndTestSettlement({
@@ -105,7 +110,7 @@ describe('Settlement', () => {
             });
 
             describe('with more than the minimum required actions to reduce', () => {
-                const actionsCount = MIN_ACTIONS_TO_REDUCE + 1;
+                const actionsCount = config.MIN_ACTIONS_TO_REDUCE + 1;
 
                 it('reduces the actions and enqueues a retry with count = 0', async () => {
                     await setupAndTestSettlement({
@@ -119,7 +124,7 @@ describe('Settlement', () => {
         });
 
         describe('with more than the max retries needed before reducing', () => {
-            const counter = MAX_RETRIES_BEFORE_REDUCE + 1;
+            const counter = config.MAX_RETRIES_BEFORE_REDUCE + 1;
 
             describe('with no actions to reduce', () => {
                 const actionsCount = 0;
@@ -135,7 +140,7 @@ describe('Settlement', () => {
             });
 
             describe('with fewer than the minimum required actions to reduce', () => {
-                const actionsCount = MIN_ACTIONS_TO_REDUCE - 1;
+                const actionsCount = config.MIN_ACTIONS_TO_REDUCE - 1;
 
                 it('reduces the actions and enqueues a retry with count = 0', async () => {
                     await setupAndTestSettlement({
@@ -148,7 +153,7 @@ describe('Settlement', () => {
             });
 
             describe('with more than the minimum required actions to reduce', () => {
-                const actionsCount = MIN_ACTIONS_TO_REDUCE + 1;
+                const actionsCount = config.MIN_ACTIONS_TO_REDUCE + 1;
 
                 it('reduces the actions and enqueues a retry with count = 0', async () => {
                     await setupAndTestSettlement({
@@ -179,7 +184,7 @@ async function setupAndTestSettlement({
     const settleSpy: MockInstance = vi.spyOn(UtilsModule, 'settle').mockResolvedValue();
     const setTimeoutSpy: MockInstance = vi.spyOn(globalThis, 'setTimeout').mockImplementation(vi.fn());
   
-    await settlementCycle({feePayer, nameservice, feepayerKey, zkAppKey, counter: stubbedCounter});
+    await settlementCycle({ nameservice, feepayerKey, zkAppKey, counter: stubbedCounter, config});
   
     expect(settleSpy).toHaveBeenCalledTimes(shouldSettle ? 1 : 0);
     expect(setTimeoutSpy).toHaveBeenCalledOnce();
@@ -188,7 +193,7 @@ async function setupAndTestSettlement({
     const [callback, delay, settlementInput] = setTimeoutSpy.mock.calls[0];
   
     expect(callback).toBe(settlementCycle);
-    expect(delay).toBe(RETRY_WAIT_MS);
+    expect(delay).toBe(config.RETRY_WAIT_MS);
     expect(settlementInput.counter).toBe(expectedCounter);
   
     fetchActionsSpy.mockRestore();

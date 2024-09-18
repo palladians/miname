@@ -1,114 +1,45 @@
-import fs from "fs/promises";
-import path from "path";
+import { NameService, PrivateKey } from "../../contracts/build/src/NameService";
+import { compile, settlementCycle } from "./settlement.js";
+import type { SettlementConfig, CycleConfig } from "./types.js";
+import { checkEnv } from "./utils";
+import dotenv from "dotenv";
 
-import {
-  NameService,
-  NameRecord,
-  StateProof,
-  offchainState,
-  Mina,
-  PrivateKey
-} from "../../contracts/build/src/NameService.js";
+dotenv.config();
 
+const minaEndpoint = checkEnv(
+  process.env.MINA_ENDPOINT,
+  "MISSING MINA_ENDPOINT"
+);
+const archiveEndpoint = checkEnv(
+  process.env.ARCHIVE_ENDPOINT,
+  "MISSING ARCHIVE_ENDPOINT"
+);
 
-type Config = {
-  deployAliases: Record<
-    string,
-    {
-      networkId?: string;
-      url: string;
-      keyPath: string;
-      fee: string;
-      feepayerKeyPath: string;
-      feepayerAlias: string;
-    }
-  >;
+const feepayerKey = PrivateKey.fromBase58(
+  checkEnv(process.env.FEE_PAYER_KEY, "MISSING FEE_PAYER_KEY")
+);
+const zkAppKey = PrivateKey.fromBase58(
+  checkEnv(process.env.ZKAPP_KEY, "MISSING ZKAPP_KEY")
+);
+
+const RETRY_WAIT_MS = Number(process.env.RETRY_WAIT_MS) || 60_000;
+const MIN_ACTIONS_TO_REDUCE = Number(process.env.MIN_ACTIONS_TO_REDUCE) || 6;
+const MAX_RETRIES_BEFORE_REDUCE =
+  Number(process.env.MAX_RETRIES_BEFORE_REDUCE) || 100;
+
+const config: SettlementConfig = {
+  RETRY_WAIT_MS,
+  MIN_ACTIONS_TO_REDUCE,
+  MAX_RETRIES_BEFORE_REDUCE,
 };
-let configJson: Config = JSON.parse(await fs.readFile("config.json", "utf8"));
-let config = configJson.deployAliases["devnet"];
-let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.feepayerKeyPath, "utf8")
-);
 
-let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.keyPath, "utf8")
-);
+const settlementCycleConfig: CycleConfig = {
+  nameservice: NameService,
+  feepayerKey: feepayerKey,
+  zkAppKey: zkAppKey,
+  counter: 0,
+  config: config,
+};
 
-let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
-let feepayerAddress = feepayerKey.toPublicKey();
-let zkAppAddress = zkAppKey.toPublicKey();
-
-const Network = Mina.Network({
-  mina: "https://api.minascan.io/node/devnet/v1/graphql",
-  archive: "https://api.minascan.io/archive/devnet/v1/graphql",
-});
-Mina.setActiveInstance(Network);
-
-const fee = Number(config.fee) * 1e9;
-
-const nameservice = new NameService(zkAppAddress);
-offchainState.setContractInstance(nameservice);
-console.time("compile program");
-await offchainState.compile();
-console.timeEnd("compile program");
-console.time("compile contract");
-await NameService.compile();
-console.timeEnd("compile contract");
-
-let counter = 0;
-let proof: StateProof;
-
-settlementCycle();
-
-async function settlementCycle() {
-  try {
-    // let latest_offchain_commitment = await nameservice.offchainState.fetch();
-    /* actionStateRange = {fromActionState: latest_offchain_commitment?.actionState };
-    let result = await Mina.fetchActions(
-        zkAppAddress,
-        actionStateRange
-      );
-    if ('error' in result) throw Error(JSON.stringify(result));
-    let actions = result.reduce((accumulator, currentItem) => {
-        return accumulator + currentItem.actions.reduce((innerAccumulator) => {
-          return innerAccumulator + 1;
-        }, 0);
-      }, 0);
-*/
-    let actions = 1;
-    if (actions > 6 || counter > 10) {
-      console.time("settlement proof");
-      try {
-        proof = await offchainState.createSettlementProof();
-      } finally {
-        console.timeEnd("settlement proof");
-        try {
-          console.log('entered tx scope');
-          let tx = await Mina.transaction({ sender: feepayerAddress, fee }, async () => {
-            await nameservice.settle(proof);
-          })
-          await tx.prove();
-          console.log('send transaction...');
-          const sentTx = await tx.sign([feepayerKey,zkAppKey]).send();
-          console.log(sentTx.toPretty());
-          if (sentTx.status === 'pending') {
-            console.log(`https://minascan.io/devnet/tx/${sentTx.hash}?type=zk-tx`);
-  
-          }
-          counter = 0;
-          }
-          catch(error){
-            console.log(error);
-          }
-          counter = 0;
-      }
-      
-    } else {
-      counter++;
-      setTimeout(settlementCycle, 60000);
-    }
-  } catch (error) {
-    setTimeout(settlementCycle, 60000);
-  }
-}
+await compile(zkAppKey, minaEndpoint, archiveEndpoint);
+await settlementCycle(settlementCycleConfig);

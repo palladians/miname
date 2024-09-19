@@ -11,8 +11,8 @@ Two type of offchain state offered: `OffchainState.Field` (a single field of sta
 - All offchain state is stored in a single Merkle map (Merkle tree of size 256)
 - There are no practical limits to the number of state fields and maps
 - You can use (pure) provable types of size up to ~100 field elements (~size of an action) for field and map values. (Map keys have unlimited size, since they don't need to be part of the action.)
-- Fields support field.get() and field.set(value) in a contract.
-- Maps support map.get(key) and map.set(key, value).
+- Fields support field.get(), field.update(update: {from: value, to: value}), field.override(value) in a contract.
+- Maps support map.get(key), map.update(key, update: {from: value, to: value}) and map.overwrite(key, value).
 
 To use offchain state, a smart contract developer must:
 

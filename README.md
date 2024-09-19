@@ -37,7 +37,7 @@ The Offchain State allows handling mappings without concurrency issues. Multiple
 
 ### Archive Node Dependency
 
-The `OffchainState` uses actions stored in archive nodes instead of a externel data store. Therefore, usage and settlement of the offchain state depends on liveness and speed of archive nodes.
+The `OffchainState` uses actions stored in archive nodes instead of a externel data store. Therefore, usage and settlement of the offchain state depends on liveness and speed of archive nodes.  Developers using offchain state in production are encouraged to run their own archive nodes for most reliabliity.
 
 ### Scaling
 

@@ -6,7 +6,7 @@ The Name Service zkApp allows users to register names that point to a name recor
 
 [Offchain State API](https://docs.minaprotocol.com/zkapps/o1js-reference/namespaces/Experimental/functions/OffchainState) helps to overcome 8 state field limitation by enabling offchain mappings and fields.
 
-Two type of offchain state offered: `OffchainState.Field` (a single field of state) and `OffchainState.Map` (a key-value map).
+Two types of offchain state are offered: `OffchainState.Field` (a single field of state) and `OffchainState.Map` (a key-value map).
 
 - All offchain state is stored in a single Merkle map (Merkle tree of size 256)
 - There are no practical limits to the number of state fields and maps

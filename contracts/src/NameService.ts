@@ -63,7 +63,7 @@ class AdminChangedEvent extends Struct({
 
 const offchainState = OffchainState(
   {
-    registry: OffchainState.Map(Field, NameRecord),
+    registry: OffchainState.Map(Name, NameRecord),
     premium: OffchainState.Field(UInt64),
   },
   { logTotalCapacity: 10, maxActionsPerProof: 5 }
@@ -110,7 +110,7 @@ class NameService extends SmartContract {
    * @param record
    *
    */
-  @method async register_name(name: Field, record: NameRecord) {
+  @method async register_name(name: Name, record: NameRecord) {
     (await offchainState.fields.registry.get(name)).isSome.assertFalse(); // do we need this?
     let premium = await this.premium_rate();
     const sender = this.sender.getAndRequireSignature();
@@ -132,7 +132,7 @@ class NameService extends SmartContract {
    * @param new_record
    *
    */
-  @method async set_record(name: Field, new_record: NameRecord) {
+  @method async set_record(name: Name, new_record: NameRecord) {
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -154,7 +154,7 @@ class NameService extends SmartContract {
    * @param new_owner
    *
    */
-  @method async transfer_name_ownership(name: Field, new_owner: PublicKey) {
+  @method async transfer_name_ownership(name: Name, new_owner: PublicKey) {
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -175,7 +175,7 @@ class NameService extends SmartContract {
    * @param name
    * @returns owner of given name
    */
-  @method.returns(PublicKey) async owner_of(name: Field) {
+  @method.returns(PublicKey) async owner_of(name: Name) {
     return (await offchainState.fields.registry.get(name)).assertSome(
       'this name is not owned'
     ).mina_address;
@@ -185,7 +185,7 @@ class NameService extends SmartContract {
    * @param name
    * @returns full record associated with given name
    */
-  @method.returns(NameRecord) async resolve_name(name: Field) {
+  @method.returns(NameRecord) async resolve_name(name: Name) {
     return (await offchainState.fields.registry.get(name)).assertSome(
       'this name is not owned'
     );

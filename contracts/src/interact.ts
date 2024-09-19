@@ -1,11 +1,11 @@
 import { AccountUpdate, Field, Mina, PrivateKey, UInt64 } from 'o1js';
-import { NameService, NameRecord, offchainState } from './NameService.js';
+import { NameService, NameRecord, offchainState, Name } from './NameService.js';
 
 const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
 
 let tx;
-let [bob, alice] = Local.testAccounts;
+let [bob, alice, eve] = Local.testAccounts;
 
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
@@ -62,10 +62,10 @@ tx = await Mina.transaction({ sender: alice, fee: 100 }, async () => {
     avatar: Field(0),
     url: Field(0),
   });
-  // await name_service_contract.register_name(
-  //   Name.fromString('boray.mina'),
-  //   new_record
-  // );
+  await name_service_contract.register_name(
+    Name.fromString('alice.mina'),
+    new_record
+  );
 })
   .sign([alice.key])
   .prove()
@@ -73,41 +73,41 @@ tx = await Mina.transaction({ sender: alice, fee: 100 }, async () => {
 console.log(tx.toPretty());
 console.timeEnd('register a name');
 
-console.time('register another name for coby');
-tx = await Mina.transaction(alice, async () => {
+console.time('register another name for eve');
+tx = await Mina.transaction(eve, async () => {
   let new_record = new NameRecord({
-    mina_address: alice,
+    mina_address: eve,
     avatar: Field(0),
     url: Field(0),
   });
-  // await name_service_contract.register_name(
-  //   Name.fromString('coby.mina'),
-  //   new_record
-  // );
+  await name_service_contract.register_name(
+    Name.fromString('eve.mina'),
+    new_record
+  );
 })
-  .sign([alice.key])
+  .sign([eve.key])
   .prove()
   .send();
 console.log(tx.toPretty());
-console.timeEnd('register another name for coby');
+console.timeEnd('register another name for eve');
 
-console.time('register another name for mahmoud');
-tx = await Mina.transaction(alice, async () => {
+console.time('register another name for bob');
+tx = await Mina.transaction(bob, async () => {
   let new_record = new NameRecord({
-    mina_address: alice,
+    mina_address: bob,
     avatar: Field(0),
     url: Field(0),
   });
-  // await name_service_contract.register_name(
-  //   Name.fromString('mahmoud.mina'),
-  //   new_record
-  // );
+  await name_service_contract.register_name(
+    Name.fromString('bob.mina'),
+    new_record
+  );
 })
-  .sign([alice.key])
+  .sign([bob.key])
   .prove()
   .send();
 console.log(tx.toPretty());
-console.timeEnd('register another name for mahmoud');
+console.timeEnd('register another name for bob');
 
 console.time('settlement proof 2');
 proof = await offchainState.createSettlementProof();
@@ -128,16 +128,15 @@ await Mina.transaction(alice, async () => {
     avatar: Field(0),
     url: Field(0),
   });
-  // let res = await name_service_contract.resolve_name(
-  //   Name.fromString('boray.mina')
-  // );
-  // res.mina_address.assertEquals(new_record.mina_address);
-  // res.avatar.assertEquals(new_record.avatar);
-  // res.url.assertEquals(new_record.url);
+  let res = await name_service_contract.resolve_name(
+    Name.fromString('alice.mina')
+  );
+  res.mina_address.assertEquals(new_record.mina_address);
+  res.avatar.assertEquals(new_record.avatar);
+  res.url.assertEquals(new_record.url);
 })
   .sign([alice.key])
   .prove()
   .send();
 console.log(tx.toPretty());
-
 console.timeEnd('get a name');

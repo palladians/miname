@@ -84,7 +84,7 @@ async function registerName(
   const registerTx = await Mina.transaction(
     { sender: sender.address, fee: 1e5 },
     async () => {
-      await nameService.register_name(name.packed, nr);
+      await nameService.register_name(name, nr);
     }
   );
   registerTx.sign([sender.key]);

@@ -8,7 +8,7 @@ The Name Service zkApp allows users to register names that point to a name recor
 
 Two types of offchain state are offered: `OffchainState.Field` (a single field of state) and `OffchainState.Map` (a key-value map).
 
-- All offchain state is stored in a single Merkle map (Merkle tree of size 256)
+- All offchain state is stored in a single Merkle map
 - There are no practical limits to the number of state fields and maps
 - You can use (pure) provable types of size up to ~100 field elements (~size of an action) for field and map values. (Map keys have unlimited size, since they don't need to be part of the action.)
 - Fields support field.get(), field.update(update: {from: value, to: value}), field.override(value) in a contract.

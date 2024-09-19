@@ -27,7 +27,7 @@ Notes:
 - The settle() implementation is trivial using the tools OffchainState provides
 - Settling also involves calling createSettlementProof() outside the contract first, which is also simple from the user point of view
 
-Please refer to [`offchain-contract.unit-test.ts`](https://github.com/o1-labs/o1js/blob/main/src/lib/mina/actions/offchain-contract.unit-test.ts) for more details on usage.
+Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/lib/mina/actions/offchain-contract.unit-test.ts) for more details on usage.
 
 ## Limitations and Warnings
 

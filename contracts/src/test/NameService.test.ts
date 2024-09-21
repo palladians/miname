@@ -56,72 +56,68 @@ describe('NameService', () => {
   describe('#register_name', () => {
     it('registers a name', async () => {
       const stringName = 'o1Labs001';
-      const stringUrl = 'o1Labs.org';
       const name = Name.fromString(stringName);
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(stringUrl).packed,
+        url: Field(0),
       });
 
       const registerTx = await Mina.transaction(
         { sender: addresses.user1, fee: 1e5 },
         async () => {
-          await nameService.register_name(name.packed, nr);
+          await nameService.register_name(name, nr);
         }
       );
       registerTx.sign([keys.user1]);
       await registerTx.prove();
       await registerTx.send().wait();
 
-      await expect(nameService.resolve_name(name.packed)).rejects.toThrow(); // Name should not be registered before settlement
+      await expect(nameService.resolve_name(name)).rejects.toThrow(); // Name should not be registered before settlement
       await settle(nameService, sender);
       expect(
-        (await nameService.resolve_name(name.packed)).mina_address.toBase58()
+        (await nameService.resolve_name(name)).mina_address.toBase58()
       ).toEqual(addresses.user1.toBase58());
 
-      const registeredUrl = new Name(
-        (await nameService.resolve_name(name.packed)).url
-      ).toString();
-      expect(registeredUrl).toEqual(stringUrl);
+      const registeredAddress = 
+        (await nameService.resolve_name(name)).mina_address;
+      expect(registeredAddress).toEqual(addresses.user1);
     });
   });
 
   describe('#set_record', () => {
     it('updates the record for a name', async () => {
       const stringName = 'o1Labs002';
-      const stringUrl = 'o1Labs.org';
       const name = Name.fromString(stringName);
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(stringUrl).packed,
+        url: Field(0),
       });
 
       await registerName(name, nr, nameService, sender);
 
-      const newUrl = 'o1Labs.com';
       const newNr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(newUrl).packed,
+        url: Field(1),
       });
 
       const setRecordTx = await Mina.transaction(
         { sender: addresses.user1, fee: 1e5 },
         async () => {
-          await nameService.set_record(name.packed, newNr);
+          await nameService.set_record(name, newNr);
         }
       );
       setRecordTx.sign([keys.user1]);
       await setRecordTx.prove();
       await setRecordTx.send().wait();
 
-      let resolved = await nameService.resolve_name(name.packed);
-      expect(new Name(resolved.url).toString()).not.toEqual(newUrl);
+      let resolved = await nameService.resolve_name(name);
+      expect(resolved.url).not.toEqual(Field(1));
       await settle(nameService, sender);
-      resolved = await nameService.resolve_name(name.packed);
-      expect(new Name(resolved.url).toString()).toEqual(newUrl);
+      resolved = await nameService.resolve_name(name);
+      expect(resolved.url).toEqual(Field(1));
     });
   });
 
@@ -136,7 +132,7 @@ describe('NameService', () => {
       nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(stringUrl).packed,
+        url: Field(0),
       });
       await registerName(name, nr, nameService, sender);
 
@@ -144,7 +140,7 @@ describe('NameService', () => {
         { sender: addresses.user1, fee: 1e5 },
         async () => {
           await nameService.transfer_name_ownership(
-            name.packed,
+            name,
             addresses.user2
           );
         }
@@ -155,7 +151,7 @@ describe('NameService', () => {
 
       await settle(nameService, sender);
       expect(
-        (await nameService.resolve_name(name.packed)).mina_address.toBase58()
+        (await nameService.resolve_name(name)).mina_address.toBase58()
       ).toEqual(addresses.user2.toBase58());
     });
 
@@ -166,14 +162,14 @@ describe('NameService', () => {
       nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(stringUrl).packed,
+        url: Field(0),
       });
       await registerName(name, nr, nameService, sender);
 
       await expect(
         Mina.transaction({ sender: addresses.user2, fee: 1e5 }, async () => {
           await nameService.transfer_name_ownership(
-            name.packed,
+            name,
             addresses.user1
           );
         })
@@ -187,12 +183,12 @@ describe('NameService', () => {
       nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(stringUrl).packed,
+        url: Field(0),
       });
       const registerTx = await Mina.transaction(
         { sender: sender.address, fee: 1e5 },
         async () => {
-          await nameService.register_name(name.packed, nr); // nr 1 is associated with user1
+          await nameService.register_name(name, nr); // nr 1 is associated with user1
         }
       );
       registerTx.sign([sender.key]);
@@ -202,7 +198,7 @@ describe('NameService', () => {
       await expect(
         Mina.transaction({ sender: addresses.user1, fee: 1e5 }, async () => {
           await nameService.transfer_name_ownership(
-            name.packed,
+            name,
             addresses.user2
           ); // user1 tries to transfer name to user2
         })
@@ -214,7 +210,7 @@ describe('NameService', () => {
         { sender: addresses.user1, fee: 1e5 },
         async () => {
           await nameService.transfer_name_ownership(
-            name.packed,
+            name,
             addresses.user2
           );
         }
@@ -237,9 +233,9 @@ describe('NameService', () => {
         url: Field(0),
       });
 
-      await expect(nameService.owner_of(name.packed)).rejects.toThrow();
+      await expect(nameService.owner_of(name)).rejects.toThrow();
       await registerName(name, nr, nameService, sender);
-      expect((await nameService.owner_of(name.packed)).toBase58()).toEqual(
+      expect((await nameService.owner_of(name)).toBase58()).toEqual(
         addresses.user1.toBase58()
       );
     });
@@ -253,11 +249,11 @@ describe('NameService', () => {
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString(stringUrl).packed,
+        url: Field(0),
       });
 
       await registerName(name, nr, nameService, sender);
-      const resolved = await nameService.resolve_name(name.packed);
+      const resolved = await nameService.resolve_name(name);
       expect(resolved.toJSON()).toEqual(nr.toJSON());
     });
   });
@@ -268,20 +264,20 @@ describe('NameService', () => {
       const nr1 = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Name.fromString('o1Labs.org').packed,
+        url: Field(0),
       });
 
       const name2 = Name.fromString('o1Labs2001');
       const nr2 = new NameRecord({
         mina_address: addresses.user2,
         avatar: Field(0),
-        url: Name.fromString('o1Labs2.org').packed,
+        url: Field(0),
       });
 
       const registerTx1 = await Mina.transaction(
         { sender: addresses.user1, fee: 1e5 },
         async () => {
-          await nameService.register_name(name1.packed, nr1);
+          await nameService.register_name(name1, nr1);
         }
       );
       registerTx1.sign([keys.user1]);
@@ -291,7 +287,7 @@ describe('NameService', () => {
       const registerTx2 = await Mina.transaction(
         { sender: addresses.user2, fee: 1e5 },
         async () => {
-          await nameService.register_name(name2.packed, nr2);
+          await nameService.register_name(name2, nr2);
         }
       );
       registerTx2.sign([keys.user2]);
@@ -300,10 +296,10 @@ describe('NameService', () => {
 
       await settle(nameService, sender);
 
-      const resolved1 = await nameService.resolve_name(name1.packed);
+      const resolved1 = await nameService.resolve_name(name1);
       expect(resolved1.toJSON()).toEqual(nr1.toJSON());
 
-      const resolved2 = await nameService.resolve_name(name2.packed);
+      const resolved2 = await nameService.resolve_name(name2);
       expect(resolved2.toJSON()).toEqual(nr2.toJSON());
     });
   });

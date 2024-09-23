@@ -45,7 +45,7 @@ let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
 );
 
 let cycleNumber = 3;
-let names = [];
+let names: string[] = [];
 let nameMap = new Map();
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);

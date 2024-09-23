@@ -45,7 +45,7 @@ let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
 );
 
 let cycleNumber = 5;
-let names = [];
+let names: string[] = [];
 let nameMap = new Map();
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
@@ -148,7 +148,7 @@ for (let i = 0; i < cycleNumber; i++) {
     console.timeEnd('register a name');
   }
 
-  wait(9); // wait for settlement
+  wait(8); // wait for settlement
 
   console.time('get a randomName');
   let randomName = names[Math.floor(Math.random() * names.length)];

@@ -57,10 +57,11 @@ describe('NameService', () => {
     it('registers a name', async () => {
       const stringName = 'o1Labs001';
       const name = Name.fromString(stringName);
+      const stringUrl = 'o1Labs.org';
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
 
       const registerTx = await Mina.transaction(
@@ -78,10 +79,10 @@ describe('NameService', () => {
       expect(
         (await nameService.resolve_name(name)).mina_address.toBase58()
       ).toEqual(addresses.user1.toBase58());
-
-      const registeredAddress = 
-        (await nameService.resolve_name(name)).mina_address;
-      expect(registeredAddress).toEqual(addresses.user1);
+      const registeredUrl = new Name(
+        (await nameService.resolve_name(name)).url
+      ).toString();
+      expect(registeredUrl).toEqual(stringUrl);
     });
   });
 
@@ -89,18 +90,20 @@ describe('NameService', () => {
     it('updates the record for a name', async () => {
       const stringName = 'o1Labs002';
       const name = Name.fromString(stringName);
+      const stringUrl = 'o1Labs.org';
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
 
       await registerName(name, nr, nameService, sender);
 
+      const newUrl = 'o1Labs.com';
       const newNr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(1),
+        url: Name.fromString(newUrl).packed,
       });
 
       const setRecordTx = await Mina.transaction(
@@ -114,10 +117,10 @@ describe('NameService', () => {
       await setRecordTx.send().wait();
 
       let resolved = await nameService.resolve_name(name);
-      expect(resolved.url).not.toEqual(Field(1));
+      expect(new Name(resolved.url).toString()).not.toEqual(newUrl);
       await settle(nameService, sender);
       resolved = await nameService.resolve_name(name);
-      expect(resolved.url).toEqual(Field(1));
+      expect(new Name(resolved.url).toString()).toEqual(newUrl);
     });
   });
 
@@ -132,7 +135,7 @@ describe('NameService', () => {
       nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
       await registerName(name, nr, nameService, sender);
 
@@ -162,7 +165,7 @@ describe('NameService', () => {
       nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
       await registerName(name, nr, nameService, sender);
 
@@ -183,7 +186,7 @@ describe('NameService', () => {
       nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
       const registerTx = await Mina.transaction(
         { sender: sender.address, fee: 1e5 },
@@ -226,11 +229,12 @@ describe('NameService', () => {
   describe('#owner_of', () => {
     it('returns the owner of a name', async () => {
       const stringName = 'o1Labs006';
+      const stringUrl = 'o1Labs.org';
       const name = Name.fromString(stringName);
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
 
       await expect(nameService.owner_of(name)).rejects.toThrow();
@@ -249,7 +253,7 @@ describe('NameService', () => {
       const nr = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
 
       await registerName(name, nr, nameService, sender);
@@ -264,14 +268,14 @@ describe('NameService', () => {
       const nr1 = new NameRecord({
         mina_address: addresses.user1,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString('o1Labs.org').packed,
       });
 
       const name2 = Name.fromString('o1Labs2001');
       const nr2 = new NameRecord({
         mina_address: addresses.user2,
         avatar: Field(0),
-        url: Field(0),
+        url: Name.fromString('o1Labs2.org').packed,
       });
 
       const registerTx1 = await Mina.transaction(

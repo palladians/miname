@@ -131,8 +131,8 @@ tx = await Mina.transaction(
   async () => {
     let new_record = new NameRecord({
       mina_address: alice.publicKey,
-      avatar: Field(0),
-      url: Field(0),
+      avatar: Field(2),
+      url: Field(3),
     });
     await name_service_contract.register_name(
       Name.fromString('alice.mina'),
@@ -210,8 +210,8 @@ console.time('get a name');
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   let new_record = new NameRecord({
     mina_address: alice.publicKey,
-    avatar: Field(0),
-    url: Field(0),
+    avatar: Field(2),
+    url: Field(3),
   });
   let res = await name_service_contract.resolve_name(
     Name.fromString('alice.mina')

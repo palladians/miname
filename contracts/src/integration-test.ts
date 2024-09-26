@@ -130,7 +130,7 @@ for (let i = 0; i < cycleNumber; i++) {
     });
     names.push(name);
     nameMap.set(name, new_record);
-    
+
     console.time('register a name');
     tx = await Mina.transaction(
       { sender: feepayerAddress, fee: fee + 100 },

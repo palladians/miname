@@ -10,7 +10,7 @@ import {
   PublicKey,
   fetchAccount,
 } from 'o1js';
-import { NameService, offchainState } from './NameService.js';
+import { NameService, offchainState } from '../NameService.js';
 
 let deployAlias = process.argv[2];
 if (!deployAlias)

@@ -32,6 +32,6 @@ cd ../contracts
 npm run build
 
 # Run commands in parallel
-(node build/src/integration-test.js devnet) &
+(node build/src/scripts/integration-test.js devnet) &
 (cd ../settlement && npm run build && npm run start) &
 wait

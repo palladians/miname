@@ -7,7 +7,7 @@ import {
   UInt64,
   NetworkId,
 } from 'o1js';
-import { NameService, NameRecord, offchainState, Name } from './NameService.js';
+import { NameService, NameRecord, offchainState, Name } from '../NameService.js';
 
 let skz = PrivateKey.randomKeypair();
 console.log('pk', skz.publicKey.toBase58());
@@ -42,12 +42,9 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
   await fs.readFile(config.feepayerKeyPath, 'utf8')
 );
 
-let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-  await fs.readFile(config.keyPath, 'utf8')
-);
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
+let zkAppKey = PrivateKey.random();
 let bob = PrivateKey.randomKeypair();
 let alice = PrivateKey.randomKeypair();
 let eve = PrivateKey.randomKeypair();

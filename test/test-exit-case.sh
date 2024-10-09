@@ -31,6 +31,6 @@ fi
 cd ../contracts
 npm run build
 
-node build/src/interact-devnet.js devnet
+node build/src/scripts/interact-devnet.js devnet
 wait
-node build/src/get-name.js devnet
+node build/src/utils/get-name.js devnet

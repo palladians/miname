@@ -7,7 +7,7 @@ import {
   UInt64,
   NetworkId,
 } from 'o1js';
-import { NameService, NameRecord, offchainState, Name } from './NameService.js';
+import { NameService, NameRecord, offchainState, Name } from '../NameService.js';
 
 // check command line arg
 let deployAlias = process.argv[2];

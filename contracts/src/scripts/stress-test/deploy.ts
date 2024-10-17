@@ -12,16 +12,12 @@ import {
   NameRecord,
   offchainState,
   Name,
-} from '../NameService.js';
+} from '../../NameService.js';
 
 // check command line arg
 let deployAlias = process.argv[2];
 if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.
-
-Usage:
-node build/src/interact.js <deployAlias>
-`);
+  throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -44,13 +40,12 @@ let config = configJson.deployAliases[deployAlias];
 let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
   await fs.readFile(config.feepayerKeyPath, 'utf8')
 );
-
-let cycleNumber = 3;
-let names: string[] = [];
-let nameMap = new Map();
+let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
+    await fs.readFile(config.keyPath, 'utf8')
+  );
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
-let zkAppKey = PrivateKey.random();
+let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
 
 const Network = Mina.Network({
   archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
@@ -62,7 +57,6 @@ const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let tx;
 let feepayerAddress = feepayerKey.toPublicKey();
-console.log(feepayerAddress.toBase58());
 let zkAppAddress = zkAppKey.toPublicKey();
 let name_service_contract = new NameService(zkAppAddress);
 
@@ -83,6 +77,7 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .sign([feepayerKey, zkAppKey])
   .send()
   .wait();
+console.log(tx.toPretty())
 console.timeEnd('deploy');
 
 console.time('set premimum rate');
@@ -93,13 +88,14 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .prove()
   .send()
   .wait();
+console.log(tx.toPretty())
 console.timeEnd('set premimum rate');
 
-console.time('settlement proof 1');
+console.time('settlement proof');
 let proof = await offchainState.createSettlementProof();
-console.timeEnd('settlement proof 1');
+console.timeEnd('settlement proof');
 
-console.time('settle 1');
+console.time('settle');
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () =>
   name_service_contract.settle(proof)
 )
@@ -107,7 +103,8 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () =>
   .prove()
   .send()
   .wait();
-console.timeEnd('settle 1');
+console.log(tx.toPretty())
+console.timeEnd('settle');
 
 console.time('get premimum rate');
 let res;
@@ -118,65 +115,6 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .prove()
   .send()
   .wait();
+console.log(tx.toPretty())
 console.log(res!.toString());
 console.timeEnd('get premimum rate');
-for (let i = 0; i < cycleNumber; i++) {
-  for (let j = 0; j < 10 ** i; j++) {
-    let name = Math.random().toString(36).substring(2, 12).concat('.mina');
-    let new_record = new NameRecord({
-      mina_address: PrivateKey.randomKeypair().publicKey,
-      avatar: Field.random(),
-      url: Field.random(),
-    });
-    names.push(name);
-    nameMap.set(name, new_record);
-    console.time('register a name');
-    tx = await Mina.transaction(
-      { sender: feepayerAddress, fee: fee + 100 },
-      async () => {
-        await name_service_contract.register_name(
-          Name.fromString(name),
-          new_record
-        );
-      }
-    )
-      .sign([feepayerKey])
-      .prove()
-      .send()
-      .wait();
-    console.timeEnd('register a name');
-  }
-  console.time('settlement proof');
-  proof = await offchainState.createSettlementProof();
-  console.timeEnd('settlement proof');
-
-  console.time('settle');
-  tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () =>
-    name_service_contract.settle(proof)
-  )
-    .sign([feepayerKey])
-    .prove()
-    .send()
-    .wait();
-  console.timeEnd('settle');
-
-  console.time('get a randomName');
-  let randomName = names[Math.floor(Math.random() * names.length)];
-  let record = nameMap.get(randomName);
-  tx = await Mina.transaction(
-    { sender: feepayerAddress, fee: fee },
-    async () => {
-      let res = await name_service_contract.resolve_name(
-        Name.fromString(randomName)
-      );
-      res.mina_address.assertEquals(record.mina_address);
-      res.avatar.assertEquals(record.avatar);
-      res.url.assertEquals(record.url);
-    }
-  )
-    .sign([feepayerKey])
-    .prove()
-    .send()
-    .wait();
-  console.timeEnd('get a randomName');
-}

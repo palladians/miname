@@ -91,5 +91,6 @@ for (let j = 0; j < 3; j++) {
     .prove()
     .send()
     .wait();
+  console.log('name: ',name);
   console.timeEnd('register a name');
 }

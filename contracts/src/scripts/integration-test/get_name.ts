@@ -64,16 +64,18 @@ await NameService.compile();
 console.timeEnd('compile contract');
 
 console.time('get a name');
+let res: any;
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
-  let res = await name_service_contract.resolve_name(
-    Name.fromString('alice.mina')
+  res = await name_service_contract.resolve_name(
+    Name.fromString('xy4zfqeg35.mina') // replace with a random name
   );
-  res.avatar.assertEquals(Field(2));
-  res.url.assertEquals(Field(3));
 })
   .sign([feepayerKey])
   .prove()
   .send()
   .wait();
+console.log('mina_address: ',res.mina_address)
+console.log('avatar: ',res.avatar)
+console.log('url: ',res.url)
 console.log(tx.toPretty());
 console.timeEnd('get a name');

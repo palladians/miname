@@ -16,8 +16,7 @@ import {
 
 // check command line arg
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -57,7 +56,6 @@ const fee = Number(config.fee) * 1e9; // in nanomina (1 billion = 1.0 mina)
 Mina.setActiveInstance(Network);
 let tx;
 let feepayerAddress = feepayerKey.toPublicKey();
-console.log(feepayerAddress.toBase58());
 let zkAppAddress = zkAppKey.toPublicKey();
 let name_service_contract = new NameService(zkAppAddress);
 
@@ -78,6 +76,7 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .sign([feepayerKey, zkAppKey])
   .send()
   .wait();
+console.log(tx.toPretty());
 console.timeEnd('deploy');
 
 console.time('set premimum rate');
@@ -88,6 +87,7 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .prove()
   .send()
   .wait();
+console.log(tx.toPretty());
 console.timeEnd('set premimum rate');
 
 console.time('settlement proof');
@@ -102,6 +102,7 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () =>
   .prove()
   .send()
   .wait();
+console.log(tx.toPretty());
 console.timeEnd('settle');
 
 console.time('get premimum rate');
@@ -113,5 +114,6 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .prove()
   .send()
   .wait();
+console.log(tx.toPretty());
 console.log(res!.toString());
 console.timeEnd('get premimum rate');

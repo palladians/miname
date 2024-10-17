@@ -3,7 +3,7 @@ import {
   StateProof,
   offchainState,
   Mina,
-} from "../../contracts/build/src/NameService";
+} from "../../contracts/build/src/NameService.js";
 import type { SettlementInputs } from "./types.js";
 
 export { settle, fetchActions, checkEnv };
@@ -48,15 +48,18 @@ async function settle({
   } finally {
     console.timeEnd("settlement proof");
     try {
-      let tx = await Mina.transaction(feePayer, async () => {
-        await nameservice.settle(proof);
-      });
-      await tx.prove();
-      const sentTx = await tx.sign([feepayerKey, zkAppKey]).send();
-      console.log(sentTx.toPretty());
-      if (sentTx.status === "pending") {
-        console.log(`https://minascan.io/devnet/tx/${sentTx.hash}?type=zk-tx`);
-      }
+      console.time("settlement tx");
+      let tx = Mina.transaction(
+        { sender: feePayer, fee: 5 * 1e8 },
+        async () => {
+          await nameservice.settle(proof);
+        }
+      );
+      await tx.sign([feepayerKey, zkAppKey])
+      .prove()
+      .send()
+      .wait();
+      console.timeEnd("settlement tx");
     } catch (error) {
       console.log(error);
     }

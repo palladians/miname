@@ -1,7 +1,7 @@
-import { NameService, PrivateKey } from "../../contracts/build/src/NameService";
+import { NameService, PrivateKey } from "../../contracts/build/src/NameService.js";
 import { compile, settlementCycle } from "./settlement.js";
 import type { SettlementConfig, CycleConfig } from "./types.js";
-import { checkEnv } from "./utils";
+import { checkEnv } from "./utils.js";
 import dotenv from "dotenv";
 
 dotenv.config();
@@ -22,23 +22,25 @@ const zkAppKey = PrivateKey.fromBase58(
   checkEnv(process.env.ZKAPP_KEY, "MISSING ZKAPP_KEY")
 );
 
-const RETRY_WAIT_MS = Number(process.env.RETRY_WAIT_MS) || 60_000;
-const MIN_ACTIONS_TO_REDUCE = Number(process.env.MIN_ACTIONS_TO_REDUCE) || 6;
-const MAX_RETRIES_BEFORE_REDUCE =
+const retry_wait_ms = Number(process.env.RETRY_WAIT_MS) || 60000;
+const min_actions_to_reduce = Number(process.env.MIN_ACTIONS_TO_REDUCE) || 6;
+const max_retries_before_reduce =
   Number(process.env.MAX_RETRIES_BEFORE_REDUCE) || 100;
 
-const config: SettlementConfig = {
-  RETRY_WAIT_MS,
-  MIN_ACTIONS_TO_REDUCE,
-  MAX_RETRIES_BEFORE_REDUCE,
+const settlement_config: SettlementConfig = {
+  RETRY_WAIT_MS: retry_wait_ms,
+  MIN_ACTIONS_TO_REDUCE: min_actions_to_reduce,
+  MAX_RETRIES_BEFORE_REDUCE: max_retries_before_reduce,
 };
 
+const nameservice_instance: NameService = new NameService(zkAppKey.toPublicKey());
+
 const settlementCycleConfig: CycleConfig = {
-  nameservice: NameService,
+  nameservice: nameservice_instance,
   feepayerKey: feepayerKey,
   zkAppKey: zkAppKey,
   counter: 0,
-  config: config,
+  config: settlement_config,
 };
 
 await compile(zkAppKey, minaEndpoint, archiveEndpoint);

@@ -23,12 +23,14 @@ jobs:
         run: |
           pushd contracts
           npm ci
+          npm i @rollup/rollup-linux-x64-gnu
           npm test
           popd
       - name: Settlement tests
         run: |
           pushd settlement
           npm ci
+          npm i @rollup/rollup-linux-x64-gnu
           npm test
           popd
         env:

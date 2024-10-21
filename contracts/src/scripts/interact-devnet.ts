@@ -65,7 +65,7 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
@@ -95,7 +95,7 @@ console.log(tx.toPretty());
 console.timeEnd('set premimum rate');
 
 console.time('settlement proof 1');
-let proof = await offchainState.createSettlementProof();
+let proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof 1');
 
 console.time('settle 1');
@@ -189,7 +189,7 @@ console.log(tx.toPretty());
 console.timeEnd('register another name for bob');
 
 console.time('settlement proof 2');
-proof = await offchainState.createSettlementProof();
+proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof 2');
 
 console.time('settle 2');

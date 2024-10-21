@@ -74,14 +74,17 @@ type NameServiceOffchainState = typeof offchainState;
 class StateProof extends offchainState.Proof {}
 
 class NameService extends SmartContract {
-  @state(OffchainState.Commitments) offchainState = offchainState.commitments();
-  @state(PublicKey) admin = State<PublicKey>();
+  @state(OffchainState.Commitments) offchainStateCommitments =
+    offchainState.emptyCommitments();
   @state(Bool) paused = State<Bool>();
+  @state(PublicKey) admin = State<PublicKey>();
 
   events = {
     pause_toggle_event: PauseToggleEvent,
     admin_changed_event: AdminChangedEvent,
   };
+
+  offchainState = offchainState.init(this);
 
   init() {
     super.init();
@@ -95,7 +98,7 @@ class NameService extends SmartContract {
    */
   @method
   async settle(proof: StateProof) {
-    await offchainState.settle(proof);
+    await this.offchainState.settle(proof);
   }
 
   /**
@@ -111,12 +114,12 @@ class NameService extends SmartContract {
    *
    */
   @method async register_name(name: Name, record: NameRecord) {
-    (await offchainState.fields.registry.get(name)).isSome.assertFalse(); // do we need this?
+    (await this.offchainState.fields.registry.get(name)).isSome.assertFalse(); // do we need this?
     let premium = await this.premium_rate();
     const sender = this.sender.getAndRequireSignature();
     const payment_update = AccountUpdate.createSigned(sender);
     payment_update.send({ to: this.address, amount: premium });
-    offchainState.fields.registry.update(name, {
+    this.offchainState.fields.registry.update(name, {
       from: undefined,
       to: record,
     });
@@ -134,11 +137,11 @@ class NameService extends SmartContract {
    */
   @method async set_record(name: Name, new_record: NameRecord) {
     let current_record = (
-      await offchainState.fields.registry.get(name)
+      await this.offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
     const sender = this.sender.getAndRequireSignature();
     current_record.mina_address.assertEquals(sender);
-    offchainState.fields.registry.update(name, {
+    this.offchainState.fields.registry.update(name, {
       from: current_record,
       to: new_record,
     });
@@ -156,7 +159,7 @@ class NameService extends SmartContract {
    */
   @method async transfer_name_ownership(name: Name, new_owner: PublicKey) {
     let current_record = (
-      await offchainState.fields.registry.get(name)
+      await this.offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
     const sender = this.sender.getAndRequireSignature();
     current_record.mina_address.assertEquals(sender);
@@ -165,7 +168,7 @@ class NameService extends SmartContract {
       avatar: current_record.avatar,
       url: current_record.url,
     });
-    offchainState.fields.registry.update(name, {
+    this.offchainState.fields.registry.update(name, {
       from: current_record,
       to: new_record,
     });
@@ -176,7 +179,7 @@ class NameService extends SmartContract {
    * @returns owner of given name
    */
   @method.returns(PublicKey) async owner_of(name: Name) {
-    return (await offchainState.fields.registry.get(name)).assertSome(
+    return (await this.offchainState.fields.registry.get(name)).assertSome(
       'this name is not owned'
     ).mina_address;
   }
@@ -186,7 +189,7 @@ class NameService extends SmartContract {
    * @returns full record associated with given name
    */
   @method.returns(NameRecord) async resolve_name(name: Name) {
-    return (await offchainState.fields.registry.get(name)).assertSome(
+    return (await this.offchainState.fields.registry.get(name)).assertSome(
       'this name is not owned'
     );
   }
@@ -195,7 +198,7 @@ class NameService extends SmartContract {
    * @returns the current premium required to register a new name
    */
   @method.returns(UInt64) async premium_rate() {
-    return (await offchainState.fields.premium.get()).assertSome(
+    return (await this.offchainState.fields.premium.get()).assertSome(
       'premium is not initialized'
     );
   }
@@ -225,8 +228,8 @@ class NameService extends SmartContract {
    * @emits PremiumChangedEvent
    */
   @method async set_premium(new_premimum: UInt64) {
-    let current_premium = await offchainState.fields.premium.get();
-    offchainState.fields.premium.update({
+    let current_premium = await this.offchainState.fields.premium.get();
+    this.offchainState.fields.premium.update({
       from: current_premium,
       to: new_premimum,
     });

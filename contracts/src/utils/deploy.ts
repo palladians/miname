@@ -14,11 +14,7 @@ import { NameService, offchainState } from '../NameService.js';
 
 let deployAlias = process.argv[2];
 if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.
-
-Usage:
-node build/src/interact.js <deployAlias>
-`);
+  throw Error(`Missing <deployAlias> argument.`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -62,7 +58,7 @@ let tx;
 let feepayerAddress = feepayerKey.toPublicKey();
 let zkAppAddress = zkAppKey.toPublicKey();
 let name_service_contract = new NameService(zkAppAddress);
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 
 // compile the program and contract to create prover keys
 console.time('compile offchainState');

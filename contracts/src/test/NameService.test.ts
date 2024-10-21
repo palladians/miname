@@ -30,7 +30,7 @@ describe('NameService', () => {
     keys = _keys;
     addresses = _addresses;
     nameService = new NameService(addresses.contract);
-    offchainState.setContractInstance(nameService);
+    nameService.offchainState.setContractInstance(nameService);
     await testSetup(nameService, sender, addresses, keys);
   });
 

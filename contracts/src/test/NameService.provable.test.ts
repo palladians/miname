@@ -29,7 +29,7 @@ describe('NameService', () => {
     keys = _keys;
     addresses = _addresses;
     nameService = new NameService(addresses.contract);
-    offchainState.setContractInstance(nameService);
+    nameService.offchainState.setContractInstance(nameService);
     await offchainState.compile();
     await NameService.compile();
     console.log('compiled');

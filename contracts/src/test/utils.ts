@@ -98,7 +98,7 @@ async function settle(
   nameService: NameService,
   sender: { address: PublicKey; key: PrivateKey }
 ) {
-  const settlementProof = await offchainState.createSettlementProof();
+  const settlementProof = await nameService.offchainState.createSettlementProof();
 
   const settleTx = await Mina.transaction(
     { sender: sender.address, fee: 1e5 },

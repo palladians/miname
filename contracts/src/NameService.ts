@@ -111,7 +111,7 @@ class NameService extends SmartContract {
    *
    */
   @method async register_name(name: Name, record: NameRecord) {
-    (await offchainState.fields.registry.get(name)).isSome.assertFalse(); // do we need this?
+    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
     let premium = await this.premium_rate();
     const sender = this.sender.getAndRequireSignature();
     const payment_update = AccountUpdate.createSigned(sender);
@@ -133,6 +133,7 @@ class NameService extends SmartContract {
    *
    */
   @method async set_record(name: Name, new_record: NameRecord) {
+    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -155,6 +156,7 @@ class NameService extends SmartContract {
    *
    */
   @method async transfer_name_ownership(name: Name, new_owner: PublicKey) {
+    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');

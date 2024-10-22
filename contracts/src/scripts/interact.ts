@@ -1,5 +1,10 @@
 import { AccountUpdate, Field, Mina, PrivateKey, UInt64 } from 'o1js';
-import { NameService, NameRecord, offchainState, Name } from '../NameService.js';
+import {
+  NameService,
+  NameRecord,
+  offchainState,
+  Name,
+} from '../NameService.js';
 
 const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);

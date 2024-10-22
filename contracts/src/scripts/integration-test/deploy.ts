@@ -1,18 +1,6 @@
 import fs from 'fs/promises';
-import {
-  AccountUpdate,
-  Field,
-  Mina,
-  PrivateKey,
-  UInt64,
-  NetworkId,
-} from 'o1js';
-import {
-  NameService,
-  NameRecord,
-  offchainState,
-  Name,
-} from '../../NameService.js';
+import { AccountUpdate, Mina, PrivateKey, UInt64, NetworkId } from 'o1js';
+import { NameService, offchainState } from '../../NameService.js';
 
 // check command line arg
 let deployAlias = process.argv[2];

@@ -1,20 +1,9 @@
 import fs from 'fs/promises';
-import {
-  AccountUpdate,
-  CircuitString,
-  Field,
-  Mina,
-  NetworkId,
-  PrivateKey,
-  Struct,
-  PublicKey,
-  fetchAccount,
-} from 'o1js';
+import { AccountUpdate, Mina, NetworkId, PrivateKey } from 'o1js';
 import { NameService, offchainState } from '../NameService.js';
 
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument.`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 

@@ -9,7 +9,7 @@ import {
 import { randomAccounts, registerName, settle, testSetup } from './utils.js';
 
 let sender: { address: PublicKey; key: PrivateKey };
-let nameService: NameService;
+let name_service_contract: NameService;
 let addresses: Record<string, PublicKey>;
 let keys: Record<string, PrivateKey>;
 
@@ -28,12 +28,14 @@ describe('NameService', () => {
     };
     keys = _keys;
     addresses = _addresses;
-    nameService = new NameService(addresses.contract);
-    nameService.offchainState.setContractInstance(nameService);
+    name_service_contract = new NameService(addresses.contract);
+    name_service_contract.offchainState.setContractInstance(
+      name_service_contract
+    );
     await offchainState.compile();
     await NameService.compile();
     console.log('compiled');
-    await testSetup(nameService, sender, addresses, keys);
+    await testSetup(name_service_contract, sender, addresses, keys);
   });
 
   describe('provable integration test', () => {
@@ -55,14 +57,14 @@ describe('NameService', () => {
         url: Field(2),
       });
 
-      await registerName(name1, nr1, nameService, sender);
-      await registerName(name2, nr2, nameService, sender);
+      await registerName(name1, nr1, name_service_contract, sender);
+      await registerName(name2, nr2, name_service_contract, sender);
 
-      await settle(nameService, sender);
+      await settle(name_service_contract, sender);
       console.log('settled first registrations');
-      const name1Record = await nameService.resolve_name(name1);
+      const name1Record = await name_service_contract.resolve_name(name1);
       expect(name1Record.toJSON()).toEqual(nr1.toJSON());
-      const name2Record = await nameService.resolve_name(name2);
+      const name2Record = await name_service_contract.resolve_name(name2);
       expect(name2Record.toJSON()).toEqual(nr2.toJSON());
 
       /**
@@ -71,7 +73,7 @@ describe('NameService', () => {
       const transferTx = await Mina.transaction(
         { sender: addresses.user1, fee: 1e5 },
         async () => {
-          await nameService.transfer_name_ownership(
+          await name_service_contract.transfer_name_ownership(
             name1,
             addresses.user2
           );
@@ -81,9 +83,9 @@ describe('NameService', () => {
       await transferTx.prove();
       await transferTx.send().wait();
 
-      await settle(nameService, sender);
+      await settle(name_service_contract, sender);
       console.log('settled transfer');
-      const name1RecordAfterTransfer = await nameService.resolve_name(
+      const name1RecordAfterTransfer = await name_service_contract.resolve_name(
         name1
       );
       expect(name1RecordAfterTransfer.mina_address.toBase58()).toEqual(
@@ -101,16 +103,16 @@ describe('NameService', () => {
       const updateTx = await Mina.transaction(
         { sender: addresses.user2, fee: 1e5 },
         async () => {
-          await nameService.set_record(name2, newNr2);
+          await name_service_contract.set_record(name2, newNr2);
         }
       );
       updateTx.sign([keys.user2]);
       await updateTx.prove();
       await updateTx.send().wait();
 
-      await settle(nameService, sender);
+      await settle(name_service_contract, sender);
       console.log('settled set record');
-      const name2RecordAfterUpdate = await nameService.resolve_name(
+      const name2RecordAfterUpdate = await name_service_contract.resolve_name(
         name2
       );
       expect(name2RecordAfterUpdate.toJSON()).toEqual(newNr2.toJSON());

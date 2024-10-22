@@ -7,19 +7,19 @@ import {
   UInt64,
   NetworkId,
 } from 'o1js';
-import { NameService, NameRecord, offchainState, Name } from '../NameService.js';
+import {
+  NameService,
+  NameRecord,
+  offchainState,
+  Name,
+} from '../NameService.js';
 
 let skz = PrivateKey.randomKeypair();
 console.log('pk', skz.publicKey.toBase58());
 console.log('sk', skz.privateKey.toBase58());
 
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.
-
-Usage:
-node build/src/interact-devnet.js <deployAlias>
-`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -41,7 +41,6 @@ let config = configJson.deployAliases[deployAlias];
 let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
   await fs.readFile(config.feepayerKeyPath, 'utf8')
 );
-
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.random();

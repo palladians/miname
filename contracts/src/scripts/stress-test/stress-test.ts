@@ -16,8 +16,7 @@ import {
 
 // check command line arg
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 

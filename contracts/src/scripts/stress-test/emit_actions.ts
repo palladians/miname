@@ -1,12 +1,5 @@
 import fs from 'fs/promises';
-import {
-  AccountUpdate,
-  Field,
-  Mina,
-  PrivateKey,
-  UInt64,
-  NetworkId,
-} from 'o1js';
+import { Field, Mina, PrivateKey, NetworkId } from 'o1js';
 import {
   NameService,
   NameRecord,
@@ -40,8 +33,8 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
   await fs.readFile(config.feepayerKeyPath, 'utf8')
 );
 let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile(config.keyPath, 'utf8')
-  );
+  await fs.readFile(config.keyPath, 'utf8')
+);
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
@@ -67,7 +60,6 @@ console.time('compile contract');
 await NameService.compile();
 console.timeEnd('compile contract');
 
-
 for (let j = 0; j < 10; j++) {
   let name = Math.random().toString(36).substring(2, 12).concat('.mina');
   let new_record = new NameRecord({
@@ -89,7 +81,7 @@ for (let j = 0; j < 10; j++) {
     .prove()
     .send()
     .wait();
-  console.log(tx.toPretty())
-  console.log('name: ',name);
+  console.log(tx.toPretty());
+  console.log('name: ', name);
   console.timeEnd('register a name: ' + j);
 }

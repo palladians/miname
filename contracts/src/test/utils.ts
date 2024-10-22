@@ -24,7 +24,7 @@ function randomAccounts<K extends string>(
 }
 
 async function testSetup(
-  nameService: NameService,
+  name_service_contract: NameService,
   sender: { address: PublicKey; key: PrivateKey },
   addresses: Record<string, PublicKey>,
   keys: Record<string, PrivateKey>
@@ -44,7 +44,7 @@ async function testSetup(
     { sender: sender.address, fee: 1e5 },
     async () => {
       AccountUpdate.fundNewAccount(sender.address);
-      nameService.deploy();
+      name_service_contract.deploy();
     }
   );
   await deployTx.prove();
@@ -65,45 +65,46 @@ async function testSetup(
   const initTx = await Mina.transaction(
     { sender: sender.address, fee: 1e9 },
     async () => {
-      await nameService.set_premium(UInt64.from(10));
+      await name_service_contract.set_premium(UInt64.from(10));
     }
   );
   await initTx.prove();
   initTx.sign([sender.key]);
   await initTx.send().wait();
 
-  await settle(nameService, sender);
+  await settle(name_service_contract, sender);
 }
 
 async function registerName(
   name: Name,
   nr: NameRecord,
-  nameService: NameService,
+  name_service_contract: NameService,
   sender: { address: PublicKey; key: PrivateKey }
 ) {
   const registerTx = await Mina.transaction(
     { sender: sender.address, fee: 1e5 },
     async () => {
-      await nameService.register_name(name, nr);
+      await name_service_contract.register_name(name, nr);
     }
   );
   registerTx.sign([sender.key]);
   await registerTx.prove();
   await registerTx.send().wait();
 
-  await settle(nameService, sender);
+  await settle(name_service_contract, sender);
 }
 
 async function settle(
-  nameService: NameService,
+  name_service_contract: NameService,
   sender: { address: PublicKey; key: PrivateKey }
 ) {
-  const settlementProof = await nameService.offchainState.createSettlementProof();
+  const settlementProof =
+    await name_service_contract.offchainState.createSettlementProof();
 
   const settleTx = await Mina.transaction(
     { sender: sender.address, fee: 1e5 },
     async () => {
-      await nameService.settle(settlementProof);
+      await name_service_contract.settle(settlementProof);
     }
   );
   settleTx.sign([sender.key]);

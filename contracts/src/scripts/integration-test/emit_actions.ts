@@ -1,12 +1,5 @@
 import fs from 'fs/promises';
-import {
-  AccountUpdate,
-  Field,
-  Mina,
-  PrivateKey,
-  UInt64,
-  NetworkId,
-} from 'o1js';
+import { Field, Mina, PrivateKey, NetworkId } from 'o1js';
 import {
   NameService,
   NameRecord,
@@ -16,8 +9,7 @@ import {
 
 // check command line arg
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -46,7 +38,6 @@ let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
-
 
 const Network = Mina.Network({
   archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
@@ -91,6 +82,6 @@ for (let j = 0; j < 3; j++) {
     .prove()
     .send()
     .wait();
-  console.log('name: ',name);
+  console.log('name: ', name);
   console.timeEnd('register a name');
 }

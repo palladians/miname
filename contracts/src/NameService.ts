@@ -14,7 +14,7 @@ import {
   UInt64,
   AccountUpdate,
 } from 'o1js';
-import { PackedStringFactory } from './o1js-pack/PackedString.js';
+import { PackedStringFactory } from 'o1js-pack';
 
 export {
   NameService,
@@ -30,7 +30,7 @@ export {
   Field,
   UInt64,
 };
-const { OffchainState, OffchainStateCommitments } = Experimental;
+const { OffchainState } = Experimental;
 
 class Name extends PackedStringFactory(31) {}
 class NameRecord extends Struct({

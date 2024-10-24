@@ -46,7 +46,7 @@ await Mina.transaction(bob, async () => {
   .prove()
   .send();
 console.log(tx.toPretty());
-console.timeEnd('register first name');
+console.timeEnd('set premium rate');
 
 console.time('settlement proof 1');
 let proof = await name_service_contract.offchainState.createSettlementProof();

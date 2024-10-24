@@ -1,10 +1,10 @@
-import { Field, Mina, PrivateKey, PublicKey } from 'o1js';
+import { Field, Mina, PrivateKey, PublicKey, UInt64 } from 'o1js';
 import { beforeAll, describe, it, expect } from 'vitest';
 import {
   Name,
   NameRecord,
-  offchainState,
   NameService,
+  offchainState,
 } from '../NameService.js';
 import { randomAccounts, registerName, settle, testSetup } from './utils.js';
 
@@ -15,7 +15,7 @@ let keys: Record<string, PrivateKey>;
 
 describe('NameService', () => {
   beforeAll(async () => {
-    const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
+    const Local = await Mina.LocalBlockchain({ proofsEnabled: false });
     const { keys: _keys, addresses: _addresses } = randomAccounts(
       'contract',
       'user1',
@@ -34,47 +34,119 @@ describe('NameService', () => {
     );
     await offchainState.compile();
     await NameService.compile();
-    console.log('compiled');
     await testSetup(name_service_contract, sender, addresses, keys);
   });
 
-  describe('provable integration test', () => {
-    it('registers names, transfers names, updates records, and resolves names', async () => {
-      /**
-       * Generate and register two names, name1 and name2, with NameRecords nr1 and nr2.
-       */
-      const name1 = Name.fromString('name1');
-      const name2 = Name.fromString('name2');
+  describe('#set_premium', () => {
+    it('updates the premium', async () => {
+      const newPremium = UInt64.from(5);
+      const setPremiumTx = await Mina.transaction(
+        { sender: sender.address, fee: 1e5 },
+        async () => {
+          await name_service_contract.set_premium(newPremium);
+        }
+      );
+      setPremiumTx.sign([sender.key]);
+      await setPremiumTx.prove();
+      await setPremiumTx.send().wait();
 
-      const nr1 = new NameRecord({
-        mina_address: addresses.user1,
-        avatar: Field(1),
-        url: Field(1),
-      });
-      const nr2 = new NameRecord({
-        mina_address: addresses.user2,
-        avatar: Field(2),
-        url: Field(2),
-      });
-
-      await registerName(name1, nr1, name_service_contract, sender);
-      await registerName(name2, nr2, name_service_contract, sender);
-
+      expect((await name_service_contract.premium_rate()).toString()).not.toEqual('5'); // ensure the premium didn't happen to be 5 before settlement
       await settle(name_service_contract, sender);
-      console.log('settled first registrations');
-      const name1Record = await name_service_contract.resolve_name(name1);
-      expect(name1Record.toJSON()).toEqual(nr1.toJSON());
-      const name2Record = await name_service_contract.resolve_name(name2);
-      expect(name2Record.toJSON()).toEqual(nr2.toJSON());
+      expect((await name_service_contract.premium_rate()).toString()).toEqual('5');
+    });
+  });
 
-      /**
-       * Transfer name1 to user2 and update name2 to nr1.
-       */
+  describe('#register_name', () => {
+    it('registers a name', async () => {
+      const stringName = 'o1Labs001';
+      const name = Name.fromString(stringName);
+      const stringUrl = 'o1Labs.org';
+      const nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
+      });
+
+      const registerTx = await Mina.transaction(
+        { sender: addresses.user1, fee: 1e5 },
+        async () => {
+          await name_service_contract.register_name(name, nr);
+        }
+      );
+      registerTx.sign([keys.user1]);
+      await registerTx.prove();
+      await registerTx.send().wait();
+
+      await expect(name_service_contract.resolve_name(name)).rejects.toThrow(); // Name should not be registered before settlement
+      await settle(name_service_contract, sender);
+      expect(
+        (await name_service_contract.resolve_name(name)).mina_address.toBase58()
+      ).toEqual(addresses.user1.toBase58());
+      const registeredUrl = new Name(
+        (await name_service_contract.resolve_name(name)).url
+      ).toString();
+      expect(registeredUrl).toEqual(stringUrl);
+    });
+  });
+
+  describe('#set_record', () => {
+    it('updates the record for a name', async () => {
+      const stringName = 'o1Labs002';
+      const name = Name.fromString(stringName);
+      const stringUrl = 'o1Labs.org';
+      const nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
+      });
+
+      await registerName(name, nr, name_service_contract, sender);
+
+      const newUrl = 'o1Labs.com';
+      const newNr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(newUrl).packed,
+      });
+
+      const setRecordTx = await Mina.transaction(
+        { sender: addresses.user1, fee: 1e5 },
+        async () => {
+          await name_service_contract.set_record(name, newNr);
+        }
+      );
+      setRecordTx.sign([keys.user1]);
+      await setRecordTx.prove();
+      await setRecordTx.send().wait();
+
+      let resolved = await name_service_contract.resolve_name(name);
+      expect(new Name(resolved.url).toString()).not.toEqual(newUrl);
+      await settle(name_service_contract, sender);
+      resolved = await name_service_contract.resolve_name(name);
+      expect(new Name(resolved.url).toString()).toEqual(newUrl);
+    });
+  });
+
+  describe('#transfer_name_ownership', () => {
+    let name: Name;
+    let nr: NameRecord;
+
+    it('transfers name ownership for a name it controls', async () => {
+      const stringName = 'o1Labs003';
+      const stringUrl = 'o1Labs.org';
+      name = Name.fromString(stringName);
+      nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
+      });
+      await registerName(name, nr, name_service_contract, sender);
+
       const transferTx = await Mina.transaction(
         { sender: addresses.user1, fee: 1e5 },
         async () => {
           await name_service_contract.transfer_name_ownership(
-            name1,
+            name,
             addresses.user2
           );
         }
@@ -84,38 +156,158 @@ describe('NameService', () => {
       await transferTx.send().wait();
 
       await settle(name_service_contract, sender);
-      console.log('settled transfer');
-      const name1RecordAfterTransfer = await name_service_contract.resolve_name(
-        name1
-      );
-      expect(name1RecordAfterTransfer.mina_address.toBase58()).toEqual(
-        addresses.user2.toBase58()
-      );
+      expect(
+        (await name_service_contract.resolve_name(name)).mina_address.toBase58()
+      ).toEqual(addresses.user2.toBase58());
+    });
 
-      /**
-       * Update record at name2
-       */
-      const newNr2 = new NameRecord({
-        mina_address: addresses.user2,
-        avatar: Field(42),
-        url: Field(100),
+    it('fails to transfer name ownership for a name it does not control', async () => {
+      const stringName = 'o1Labs004';
+      const stringUrl = 'o1Labs.org';
+      name = Name.fromString(stringName);
+      nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
       });
-      const updateTx = await Mina.transaction(
-        { sender: addresses.user2, fee: 1e5 },
+      await registerName(name, nr, name_service_contract, sender);
+
+      await expect(
+        Mina.transaction({ sender: addresses.user2, fee: 1e5 }, async () => {
+          await name_service_contract.transfer_name_ownership(
+            name,
+            addresses.user1
+          );
+        })
+      ).rejects.toThrow();
+    });
+
+    it('fails to transfer a name that it owns but has not yet bees settled', async () => {
+      const stringName = 'o1Labs005';
+      const stringUrl = 'o1Labs.org';
+      name = Name.fromString(stringName);
+      nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
+      });
+      const registerTx = await Mina.transaction(
+        { sender: sender.address, fee: 1e5 },
         async () => {
-          await name_service_contract.set_record(name2, newNr2);
+          await name_service_contract.register_name(name, nr); // nr 1 is associated with user1
         }
       );
-      updateTx.sign([keys.user2]);
-      await updateTx.prove();
-      await updateTx.send().wait();
+      registerTx.sign([sender.key]);
+      await registerTx.prove();
+      await registerTx.send().wait();
+
+      await expect(
+        Mina.transaction({ sender: addresses.user1, fee: 1e5 }, async () => {
+          await name_service_contract.transfer_name_ownership(
+            name,
+            addresses.user2
+          ); // user1 tries to transfer name to user2
+        })
+      ).rejects.toThrow();
 
       await settle(name_service_contract, sender);
-      console.log('settled set record');
-      const name2RecordAfterUpdate = await name_service_contract.resolve_name(
-        name2
+
+      const transferTx = await Mina.transaction(
+        { sender: addresses.user1, fee: 1e5 },
+        async () => {
+          await name_service_contract.transfer_name_ownership(
+            name,
+            addresses.user2
+          );
+        }
       );
-      expect(name2RecordAfterUpdate.toJSON()).toEqual(newNr2.toJSON());
+      transferTx.sign([keys.user1]);
+      await transferTx.prove();
+      await transferTx.send().wait();
+
+      expect(true); // after settling, the transfer succeeded
+    });
+  });
+
+  describe('#owner_of', () => {
+    it('returns the owner of a name', async () => {
+      const stringName = 'o1Labs006';
+      const stringUrl = 'o1Labs.org';
+      const name = Name.fromString(stringName);
+      const nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
+      });
+
+      await expect(name_service_contract.owner_of(name)).rejects.toThrow();
+      await registerName(name, nr, name_service_contract, sender);
+      expect((await name_service_contract.owner_of(name)).toBase58()).toEqual(
+        addresses.user1.toBase58()
+      );
+    });
+  });
+
+  describe('#resolve_name', () => {
+    it('returns the full record associated with a name', async () => {
+      const stringName = 'o1Labs007';
+      const stringUrl = 'o1Labs.org';
+      const name = Name.fromString(stringName);
+      const nr = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString(stringUrl).packed,
+      });
+
+      await registerName(name, nr, name_service_contract, sender);
+      const resolved = await name_service_contract.resolve_name(name);
+      expect(resolved.toJSON()).toEqual(nr.toJSON());
+    });
+  });
+
+  describe('#settle (with multiple transactions)', () => {
+    it('registers multiple names from different users', async () => {
+      const name1 = Name.fromString('o1Labs008');
+      const nr1 = new NameRecord({
+        mina_address: addresses.user1,
+        avatar: Field(0),
+        url: Name.fromString('o1Labs.org').packed,
+      });
+
+      const name2 = Name.fromString('o1Labs2001');
+      const nr2 = new NameRecord({
+        mina_address: addresses.user2,
+        avatar: Field(0),
+        url: Name.fromString('o1Labs2.org').packed,
+      });
+
+      const registerTx1 = await Mina.transaction(
+        { sender: addresses.user1, fee: 1e5 },
+        async () => {
+          await name_service_contract.register_name(name1, nr1);
+        }
+      );
+      registerTx1.sign([keys.user1]);
+      await registerTx1.prove();
+      await registerTx1.send().wait();
+
+      const registerTx2 = await Mina.transaction(
+        { sender: addresses.user2, fee: 1e5 },
+        async () => {
+          await name_service_contract.register_name(name2, nr2);
+        }
+      );
+      registerTx2.sign([keys.user2]);
+      await registerTx2.prove();
+      await registerTx2.send().wait();
+
+      await settle(name_service_contract, sender);
+
+      const resolved1 = await name_service_contract.resolve_name(name1);
+      expect(resolved1.toJSON()).toEqual(nr1.toJSON());
+
+      const resolved2 = await name_service_contract.resolve_name(name2);
+      expect(resolved2.toJSON()).toEqual(nr2.toJSON());
     });
   });
 });

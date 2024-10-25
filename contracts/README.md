@@ -1,4 +1,4 @@
-# Name Service ZkApp
+# Name Service ZkApp Example
 
 ## User-facing Functions
 

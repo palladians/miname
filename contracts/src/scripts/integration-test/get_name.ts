@@ -1,17 +1,9 @@
 import fs from 'fs/promises';
-import {
-  AccountUpdate,
-  Field,
-  Mina,
-  PrivateKey,
-  UInt64,
-  NetworkId,
-} from 'o1js';
-import { NameService, NameRecord, offchainState, Name } from '../../NameService.js';
+import { Mina, PrivateKey, NetworkId } from 'o1js';
+import { NameService, offchainState, Name } from '../../NameService.js';
 
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument.`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -57,7 +49,7 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
@@ -74,8 +66,8 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .prove()
   .send()
   .wait();
-console.log('mina_address: ',res.mina_address)
-console.log('avatar: ',res.avatar)
-console.log('url: ',res.url)
+console.log('mina_address: ', res.mina_address);
+console.log('avatar: ', res.avatar);
+console.log('url: ', res.url);
 console.log(tx.toPretty());
 console.timeEnd('get a name');

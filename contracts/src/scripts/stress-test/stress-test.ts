@@ -16,8 +16,7 @@ import {
 
 // check command line arg
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -66,7 +65,7 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
@@ -94,7 +93,7 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
 console.timeEnd('set premimum rate');
 
 console.time('settlement proof 1');
-let proof = await offchainState.createSettlementProof();
+let proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof 1');
 
 console.time('settle 1');
@@ -145,7 +144,7 @@ for (let i = 0; i < cycleNumber; i++) {
     console.timeEnd('register a name');
   }
   console.time('settlement proof');
-  proof = await offchainState.createSettlementProof();
+  proof = await name_service_contract.offchainState.createSettlementProof();
   console.timeEnd('settlement proof');
 
   console.time('settle');

@@ -16,8 +16,7 @@ import {
 
 // check command line arg
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -68,7 +67,7 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
@@ -85,8 +84,8 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .wait();
 console.timeEnd('deploy');
 
-let comt = await offchainState.commitments().fetch();
-console.log("after deploy:", comt?.root.toString());
+let comt = await name_service_contract.offchainState.commitments().fetch();
+console.log('after deploy:', comt?.root.toString());
 
 console.time('set premimum rate');
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
@@ -98,15 +97,15 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   .wait();
 console.timeEnd('set premimum rate');
 
-comt = await offchainState.commitments().fetch();
-console.log("after set premium:", comt?.root.toString());
+comt = await name_service_contract.offchainState.commitments().fetch();
+console.log('after set premium:', comt?.root.toString());
 
 console.time('settlement proof 1');
-let proof = await offchainState.createSettlementProof();
+let proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof 1');
 
-comt = await offchainState.commitments().fetch();
-console.log("after settlement proof:", comt?.root.toString());
+comt = await name_service_contract.offchainState.commitments().fetch();
+console.log('after settlement proof:', comt?.root.toString());
 
 console.time('settle 1');
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () =>
@@ -118,8 +117,8 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () =>
   .wait();
 console.timeEnd('settle 1');
 
-comt = await offchainState.commitments().fetch();
-console.log("after settlement tx:", comt?.root.toString());
+comt = await name_service_contract.offchainState.commitments().fetch();
+console.log('after settlement tx:', comt?.root.toString());
 
 console.time('get premimum rate');
 let res;
@@ -133,13 +132,13 @@ tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
 console.log(res!.toString());
 console.timeEnd('get premimum rate');
 
-comt = await offchainState.commitments().fetch();
-console.log("after get premium:", comt?.root.toString());
+comt = await name_service_contract.offchainState.commitments().fetch();
+console.log('after get premium:', comt?.root.toString());
 
 for (let i = 0; i < cycleNumber; i++) {
   for (let j = 0; j < 3; j++) {
-    let comt = await offchainState.commitments().fetch();
-    console.log(j,":", comt?.root.toString());
+    let comt = await name_service_contract.offchainState.commitments().fetch();
+    console.log(j, ':', comt?.root.toString());
     let name = Math.random().toString(36).substring(2, 12).concat('.mina');
     let new_record = new NameRecord({
       mina_address: PrivateKey.randomKeypair().publicKey,
@@ -165,12 +164,12 @@ for (let i = 0; i < cycleNumber; i++) {
       .wait();
     console.timeEnd('register a name');
   }
-  let comt = await offchainState.commitments().fetch();
-  console.log("check before settlement:", comt?.root.toString());
+  let comt = await name_service_contract.offchainState.commitments().fetch();
+  console.log('check before settlement:', comt?.root.toString());
   await wait(12); // wait for settlement
 
-  comt = await offchainState.commitments().fetch();
-  console.log("check after settlement:", comt?.root.toString());
+  comt = await name_service_contract.offchainState.commitments().fetch();
+  console.log('check after settlement:', comt?.root.toString());
   console.time('get a randomName');
   let randomName = names[Math.floor(Math.random() * names.length)];
   let record = nameMap.get(randomName);

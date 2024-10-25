@@ -1,4 +1,4 @@
-# Name Service ZkApp
+# Name Service ZkApp Example
 
 The Name Service zkApp allows users to register names that point to a name record containing data, including a Mina address. Names do not expire. Owners can update their name’s record and transfer ownership. Only the admin can pause or unpause the zkApp, set the premium rate, and transfer admin rights. For details, check out [Name Service README](/contracts/README.md).
 
@@ -46,4 +46,4 @@ Currently, the entire Merkle tree is reconstructed on the fly by each user from 
 # Settlement
 
 This example includes a settlement module. The module tracks the number of unsettled actions for a specific zkApp account and settles them when a certain number of actions is reached or when an action remains unsettled for a specified time period. Running the settlement module provides a better user experience than requiring users to request settlements themselves.
-For Details, please refer to [Settlement Module Readme](/settlement/README.md).
+For Details, please refer to [Settlement Module README](/settlement/README.md).

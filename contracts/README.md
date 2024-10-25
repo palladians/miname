@@ -1,4 +1,4 @@
-# Name Service ZkApp
+# Name Service ZkApp Example
 
 ## User-facing Functions
 
@@ -64,7 +64,9 @@ npm run build
 
 ```sh
 npm run test
-npm run testw # watch mode
+npm run test:provable # test proofsEnabled=true
+npm run test:all # run all tests
+
 ```
 
 ## How to run coverage

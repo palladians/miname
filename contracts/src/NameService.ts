@@ -13,6 +13,7 @@ import {
   Bool,
   UInt64,
   AccountUpdate,
+  Provable,
 } from 'o1js';
 import { PackedStringFactory } from './o1js-pack/PackedString.js';
 
@@ -31,8 +32,8 @@ export {
   UInt64,
 };
 const { OffchainState, OffchainStateCommitments } = Experimental;
-
-class Name extends PackedStringFactory(31) {}
+const MAX_STRING = 31;
+class Name extends PackedStringFactory(MAX_STRING) {}
 class NameRecord extends Struct({
   mina_address: PublicKey,
   avatar: Field,
@@ -64,7 +65,7 @@ class AdminChangedEvent extends Struct({
 const offchainState = OffchainState(
   {
     registry: OffchainState.Map(Name, NameRecord),
-    premium: OffchainState.Field(UInt64),
+    premium: OffchainState.Field(Provable.Array(UInt64, 6)),
   },
   { logTotalCapacity: 10, maxActionsPerProof: 5 }
 );
@@ -85,7 +86,7 @@ class NameService extends SmartContract {
 
   init() {
     super.init();
-    this.admin.set(this.sender.getAndRequireSignature());
+    this.admin.set(this.sender.getAndRequireSignatureV2());
   }
 
   /**
@@ -111,9 +112,20 @@ class NameService extends SmartContract {
    *
    */
   @method async register_name(name: Name, record: NameRecord) {
-    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
-    let premium = await this.premium_rate();
-    const sender = this.sender.getAndRequireSignature();
+    const chars = Name.unpack(name.packed);
+    // chars.
+    let charCount = Field(0);
+    for (let i = 0; i < MAX_STRING; i++) {
+      charCount = Provable.if(
+        chars[i].value.greaterThan(0),
+        charCount.add(Field(1)),
+        charCount
+      );
+    }
+    this.paused.getAndRequireEquals().assertFalse('zkapp is paused');
+    let premium = await this.premium_rate(charCount);
+    const sender = this.sender.getAndRequireSignatureV2();
+    //if sender is us, apply discount on the premium
     const payment_update = AccountUpdate.createSigned(sender);
     payment_update.send({ to: this.address, amount: premium });
     offchainState.fields.registry.update(name, {
@@ -133,11 +145,11 @@ class NameService extends SmartContract {
    *
    */
   @method async set_record(name: Name, new_record: NameRecord) {
-    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
+    this.paused.getAndRequireEquals().assertFalse('zkapp is paused');
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
-    const sender = this.sender.getAndRequireSignature();
+    const sender = this.sender.getAndRequireSignatureV2();
     current_record.mina_address.assertEquals(sender);
     offchainState.fields.registry.update(name, {
       from: current_record,
@@ -156,11 +168,11 @@ class NameService extends SmartContract {
    *
    */
   @method async transfer_name_ownership(name: Name, new_owner: PublicKey) {
-    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
+    this.paused.getAndRequireEquals().assertFalse('zkapp is paused');
     let current_record = (
       await offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
-    const sender = this.sender.getAndRequireSignature();
+    const sender = this.sender.getAndRequireSignatureV2();
     current_record.mina_address.assertEquals(sender);
     let new_record = new NameRecord({
       mina_address: new_owner,
@@ -196,9 +208,37 @@ class NameService extends SmartContract {
   /**
    * @returns the current premium required to register a new name
    */
-  @method.returns(UInt64) async premium_rate() {
-    return (await offchainState.fields.premium.get()).assertSome(
-      'premium is not initialized'
+  @method.returns(UInt64) async premium_rate(nameLength: Field) {
+    // return (await offchainState.fields.premium.get()).assertSome(
+    //   'premium is not initialized'
+    // );
+    //2000 for 3 characters
+    //1400 for 4 characters
+    //400 for 5-6 characters
+    //200 for 7-8 characters
+    //100 for 9-10 characters
+    //50 for 11-31 characters
+    let prices = await offchainState.fields.premium.get();
+    return Provable.if(
+      nameLength.lessThan(4),
+      UInt64.from(prices.value[0]),
+      Provable.if(
+        nameLength.lessThan(5),
+        UInt64.from(prices.value[1]),
+        Provable.if(
+          nameLength.lessThan(7),
+          UInt64.from(prices.value[2]),
+          Provable.if(
+            nameLength.lessThan(9),
+            UInt64.from(prices.value[3]),
+            Provable.if(
+              nameLength.lessThan(11),
+              UInt64.from(prices.value[4]),
+              UInt64.from(prices.value[5])
+            )
+          )
+        )
+      )
     );
   }
 
@@ -217,7 +257,7 @@ class NameService extends SmartContract {
   }
 
   // ADMIN FUNCTIONS
-
+  //make PR to emit event and to check for admin!
   /**
    * Set the premium required to register a new name
    * Fails if sender is not admin
@@ -242,7 +282,7 @@ class NameService extends SmartContract {
    */
   @method async toggle_pause() {
     let current_admin = this.admin.getAndRequireEquals();
-    const sender = this.sender.getAndRequireSignature();
+    const sender = this.sender.getAndRequireSignatureV2();
     current_admin.assertEquals(sender);
     let is_paused = this.paused.getAndRequireEquals();
     this.paused.set(is_paused.not());
@@ -262,7 +302,7 @@ class NameService extends SmartContract {
    */
   @method async change_admin(new_admin: PublicKey) {
     let current_admin = this.admin.getAndRequireEquals();
-    const sender = this.sender.getAndRequireSignature();
+    const sender = this.sender.getAndRequireSignatureV2();
     current_admin.assertEquals(sender);
     this.admin.set(new_admin);
 

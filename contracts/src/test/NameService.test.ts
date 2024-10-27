@@ -50,9 +50,21 @@ describe('NameService', () => {
       await setPremiumTx.prove();
       await setPremiumTx.send().wait();
 
-      expect((await name_service_contract.premium_rate()).toString()).not.toEqual('5'); // ensure the premium didn't happen to be 5 before settlement
+      expect(
+        (await name_service_contract.premium_rate()).toString()
+      ).not.toEqual('5'); // ensure the premium didn't happen to be 5 before settlement
       await settle(name_service_contract, sender);
-      expect((await name_service_contract.premium_rate()).toString()).toEqual('5');
+      expect((await name_service_contract.premium_rate()).toString()).toEqual(
+        '5'
+      );
+    });
+    it('fails to set premium if caller is not the admin', async () => {
+      const newPremium = UInt64.from(1);
+      await expect(
+        Mina.transaction({ sender: addresses.user1, fee: 1e5 }, async () => {
+          await name_service_contract.set_premium(newPremium);
+        })
+      ).rejects.toThrow();
     });
   });
 

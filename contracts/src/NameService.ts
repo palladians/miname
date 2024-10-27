@@ -60,6 +60,10 @@ class AdminChangedEvent extends Struct({
   old_admin: PublicKey,
   new_admin: PublicKey,
 }) {}
+class PremiumChangedEvent extends Struct({
+  old_premium: UInt64,
+  new_premium: UInt64,
+}) {}
 
 const offchainState = OffchainState(
   {
@@ -82,6 +86,7 @@ class NameService extends SmartContract {
   events = {
     pause_toggle_event: PauseToggleEvent,
     admin_changed_event: AdminChangedEvent,
+    premium_changed_event: PremiumChangedEvent,
   };
 
   offchainState = offchainState.init(this);
@@ -114,7 +119,7 @@ class NameService extends SmartContract {
    *
    */
   @method async register_name(name: Name, record: NameRecord) {
-    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
+    this.paused.getAndRequireEquals().assertFalse('zkapp is paused');
     let premium = await this.premium_rate();
     const sender = this.sender.getAndRequireSignature();
     const payment_update = AccountUpdate.createSigned(sender);
@@ -136,7 +141,7 @@ class NameService extends SmartContract {
    *
    */
   @method async set_record(name: Name, new_record: NameRecord) {
-    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
+    this.paused.getAndRequireEquals().assertFalse('zkapp is paused');
     let current_record = (
       await this.offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -159,7 +164,7 @@ class NameService extends SmartContract {
    *
    */
   @method async transfer_name_ownership(name: Name, new_owner: PublicKey) {
-    this.paused.getAndRequireEquals().assertFalse("zkapp is paused");
+    this.paused.getAndRequireEquals().assertFalse('zkapp is paused');
     let current_record = (
       await this.offchainState.fields.registry.get(name)
     ).assertSome('this name is not owned');
@@ -230,10 +235,18 @@ class NameService extends SmartContract {
    * @emits PremiumChangedEvent
    */
   @method async set_premium(new_premimum: UInt64) {
+    let current_admin = this.admin.getAndRequireEquals();
+    const sender = this.sender.getAndRequireSignature();
+    current_admin.assertEquals(sender);
     let current_premium = await this.offchainState.fields.premium.get();
     this.offchainState.fields.premium.update({
       from: current_premium,
       to: new_premimum,
+    });
+
+    this.emitEvent('premium_changed_event', {
+      old_premium: current_premium.orElse(new UInt64(0)),
+      new_premium: new_premimum,
     });
   }
 

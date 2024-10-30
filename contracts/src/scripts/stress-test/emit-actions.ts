@@ -54,11 +54,14 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
 console.timeEnd('compile contract');
+
+name_service_contract.offchainState.setContractInstance(name_service_contract);
+await name_service_contract.offchainState.createSettlementProof();
+//TODO: Implement sync() method to offchainState
 
 for (let j = 0; j < 10; j++) {
   let name = Math.random().toString(36).substring(2, 12).concat('.mina');

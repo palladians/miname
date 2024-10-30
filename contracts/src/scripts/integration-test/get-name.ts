@@ -59,7 +59,7 @@ console.time('get a name');
 let res: any;
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
   res = await name_service_contract.resolve_name(
-    Name.fromString('xy4zfqeg35.mina') // replace with a random name
+    Name.fromString('uq18z782ix.mina') // replace with a random name
   );
 })
   .sign([feepayerKey])

@@ -9,6 +9,15 @@ Users expect their state changes to be applied without latency. To provide this 
 # How to use?
 
 ## Configure `.env`
+```sh
+MINA_ENDPOINT= # Mina Endpoint
+ARCHIVE_ENDPOINT= # Archive Node Endpoint
+FEE_PAYER_KEY= # Private key of fee payer in base58 format
+ZKAPP_KEY= # Private key of zkapp in base58 format
+RETRY_WAIT_MS= # Wait time between cycles in milliseconds
+MIN_ACTIONS_TO_REDUCE= # Minimum number of actions that trigger settlement
+MAX_RETRIES_BEFORE_REDUCE= # Maximum number of cycles before settlement is triggered
+```
 
 ## Build
 
@@ -21,3 +30,7 @@ npm run build
 ```sh
 npm run start
 ```
+
+# License
+
+[Apache-2.0](LICENSE)

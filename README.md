@@ -10,22 +10,22 @@ Two types of offchain state are offered: `OffchainState.Field` (a single field o
 
 - All offchain state is stored in a single Merkle map
 - There are no practical limits to the number of state fields and maps
-- You can use (pure) provable types of size up to ~100 field elements (~size of an action) for field and map values. (Map keys have unlimited size, since they don't need to be part of the action.)
-- Fields support field.get(), field.update(update: {from: value, to: value}), field.override(value) in a contract.
-- Maps support map.get(key), map.update(key, update: {from: value, to: value}) and map.overwrite(key, value).
+- You can use (pure) provable types of size up to ~16 field elements (~size of an action) for field and map values. (Map keys have unlimited size, since they don't need to be part of the action.)
+- Fields support `field.get()`, `field.update(update: {from: value, to: value})`, `field.override(value)` in a contract.
+- Maps support `map.get(key)`, `map.update(key, update: {from: value, to: value})` and `map.overwrite(key, value)`.
 
 To use offchain state, a smart contract developer must:
 
 - Declare an OffchainState
-- Call offchainState.compile() and offchainState.setContractInstance() in the setup phase
+- Call `offchainState.compile()` and `offchainState.setContractInstance()` in the setup phase
 - Add a specific on-chain state field to store commitments to the offchain state
-- Add a settle() method to the smart contract and call it periodically to settle state
+- Add a `settle()` method to the smart contract and call it periodically to settle state
 
 Notes:
 
-- State is only available for get() after it was settled
-- The settle() implementation is trivial using the tools OffchainState provides
-- Settling also involves calling createSettlementProof() outside the contract first, which is also simple from the user point of view
+- State is only available for `get()` after it was settled
+- The `settle()` implementation is trivial using the tools OffchainState provides
+- Settling also involves calling `createSettlementProof()` outside the contract first, which is also simple from the user point of view
 
 Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/lib/mina/actions/offchain-contract.unit-test.ts) for more details on usage.
 

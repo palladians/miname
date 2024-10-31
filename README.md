@@ -6,7 +6,7 @@ The Name Service zkApp allows users to register names that point to a name recor
 
 [Offchain State API](https://docs.minaprotocol.com/zkapps/o1js-reference/namespaces/Experimental/functions/OffchainState) helps to overcome 8 state field limitation by enabling offchain mappings and fields.
 
-Two types of offchain state are offered: `OffchainState.Field` (a single field of state) and `OffchainState.Map` (a key-value map).
+Two types of offchain state are offered: `OffchainState.Field` (a single state field) and `OffchainState.Map` (a key-value map).
 
 - All offchain state is stored in a single Merkle map
 - There are no practical limits to the number of state fields and maps
@@ -14,9 +14,9 @@ Two types of offchain state are offered: `OffchainState.Field` (a single field o
 - Fields support `field.get()`, `field.update(update: {from: value, to: value})`, `field.override(value)` in a contract.
 - Maps support `map.get(key)`, `map.update(key, update: {from: value, to: value})` and `map.overwrite(key, value)`.
 
-To use offchain state, a smart contract developer must:
+To use offchain state, a developer must:
 
-- Declare an OffchainState
+- Declare an `OffchainState`
 - Call `offchainState.compile()` and `offchainState.setContractInstance()` in the setup phase
 - Add a specific on-chain state field to store commitments to the offchain state
 - Add a `settle()` method to the smart contract and call it periodically to settle state
@@ -24,8 +24,8 @@ To use offchain state, a smart contract developer must:
 Notes:
 
 - State is only available for `get()` after it was settled
-- The `settle()` implementation is trivial using the tools OffchainState provides
-- Settling also involves calling `createSettlementProof()` outside the contract first, which is also simple from the user point of view
+- The `settle()` implementation is trivial using the tools `OffchainState` provides
+- Settling also involves calling `createSettlementProof()` outside the contract first.
 
 Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/lib/mina/actions/offchain-contract.unit-test.ts) for more details on usage.
 
@@ -33,7 +33,7 @@ Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/li
 
 ### Concurrency Issue
 
-The Offchain State allows handling mappings without concurrency issues. Multiple users can update the values of different keys in the same block. However, in the case of fields, when two users try to change an offchain field at the same time, only one will succeed. A simple workaround is to use on-chain state with actions and a reducer when concurrency is a concern.
+The Offchain State allows handling mappings without race conditions. Multiple users can update the values of different keys in the same block. However, in the case of fields, when two users try to change an offchain field at the same time, only one will succeed. The simple workaround is to use on-chain state with actions and a reducer when concurrency is a concern.
 
 ### Archive Node Dependency
 
@@ -45,5 +45,5 @@ Currently, the entire Merkle tree is reconstructed on the fly by each user from 
 
 # Settlement
 
-This example includes a settlement module. The module tracks the number of unsettled actions for a specific zkApp account and settles them when a certain number of actions is reached or when an action remains unsettled for a specified time period. Running the settlement module provides a better user experience than requiring users to request settlements themselves.
-For Details, please refer to [Settlement Module README](/settlement/README.md).
+This example includes a settlement module. The module tracks the number of unsettled actions for a zkApp account and settles them when a certain number of actions is reached or when an action remains unsettled for a specified time period. Running the settlement module provides a better user experience than requiring users to request settlements themselves.
+For details, please refer to [Settlement Module README](/settlement/README.md).

@@ -33,7 +33,7 @@ Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/li
 
 ### Concurrency Issue
 
-The Offchain State allows handling mappings without race conditions. Multiple users can update the values of different keys in the same block. However, in the case of fields, when two users try to change an offchain field at the same time, only one will succeed. The simple workaround is to use on-chain state with actions and a reducer when concurrency is a concern.
+The Offchain State API allows handling mappings without race conditions. Multiple users can update the values of different keys in the same block. However, in the case of fields, when two users try to update an offchain field at the same time, only one will succeed. The simple workaround is to use an on-chain state field with actions and a reducer when concurrency is a concern.
 
 ### Archive Node Dependency
 
@@ -41,7 +41,7 @@ The `OffchainState` uses actions stored in archive nodes instead of a externel d
 
 ### Scaling
 
-Currently, the entire Merkle tree is reconstructed on the fly by each user from the fetched actions. This doesn't scale well.
+Currently, the entire Merkle tree is reconstructed on the fly by each user from the fetched actions. This approach has limited scalability.
 
 # Settlement
 

@@ -4,7 +4,7 @@ The Name Service zkApp allows users to register names that point to a name recor
 
 # Offchain State API
 
-[Offchain State API](https://docs.minaprotocol.com/zkapps/o1js-reference/namespaces/Experimental/functions/OffchainState) helps to overcome 8 state field limitation by enabling offchain mappings and fields.
+[Offchain State API](https://docs.minaprotocol.com/zkapps/writing-a-zkapp/feature-overview/offchain-storage) helps to overcome 8 state field limitation by enabling offchain mappings and fields.
 
 Two types of offchain state are offered: `OffchainState.Field` (a single state field) and `OffchainState.Map` (a key-value map).
 
@@ -27,7 +27,7 @@ Notes:
 - The `settle()` implementation is trivial using the tools `OffchainState` provides
 - Settling also involves calling `createSettlementProof()` outside the contract first.
 
-Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/lib/mina/actions/offchain-contract.unit-test.ts) for more details on usage.
+Please refer to [the o1js demo](https://github.com/o1-labs/o1js/blob/main/src/lib/mina/actions/offchain-contract-tests/single-contract-instance.unit-test.ts) for more details on usage.
 
 ## Limitations and Warnings
 

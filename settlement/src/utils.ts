@@ -16,7 +16,7 @@ function checkEnv(input: string | undefined, message: string): string {
 }
 
 async function fetchActions(nameservice: NameService): Promise<number> {
-  let latest_offchain_commitment = await nameservice.offchainState.fetch();
+  let latest_offchain_commitment = await nameservice.offchainStateCommitments.fetch()
   const actionStateRange = {
     fromActionState: latest_offchain_commitment?.actionState,
   };
@@ -44,7 +44,7 @@ async function settle({
   const feePayer = feepayerKey.toPublicKey();
   console.time("settlement proof");
   try {
-    proof = await offchainState.createSettlementProof();
+    proof = await nameservice.offchainState.createSettlementProof();
   } finally {
     console.timeEnd("settlement proof");
     try {

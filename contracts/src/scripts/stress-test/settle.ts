@@ -1,23 +1,10 @@
 import fs from 'fs/promises';
-import {
-  AccountUpdate,
-  Field,
-  Mina,
-  PrivateKey,
-  UInt64,
-  NetworkId,
-} from 'o1js';
-import {
-  NameService,
-  NameRecord,
-  offchainState,
-  Name,
-} from '../../NameService.js';
+import { Mina, PrivateKey, NetworkId } from 'o1js';
+import { NameService, offchainState } from '../../NameService.js';
 
 // check command line arg
 let deployAlias = process.argv[2];
-if (!deployAlias)
-  throw Error(`Missing <deployAlias> argument`);
+if (!deployAlias) throw Error(`Missing <deployAlias> argument`);
 Error.stackTraceLimit = 1000;
 const DEFAULT_NETWORK_ID = 'testnet';
 
@@ -41,12 +28,11 @@ let feepayerKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
   await fs.readFile(config.feepayerKeyPath, 'utf8')
 );
 let zkAppKeysBase58: { privateKey: string; publicKey: string } = JSON.parse(
-    await fs.readFile(config.keyPath, 'utf8')
-  );
+  await fs.readFile(config.keyPath, 'utf8')
+);
 
 let feepayerKey = PrivateKey.fromBase58(feepayerKeysBase58.privateKey);
 let zkAppKey = PrivateKey.fromBase58(zkAppKeysBase58.privateKey);
-
 
 const Network = Mina.Network({
   archive: 'https://api.minascan.io/archive/devnet/v1/graphql',
@@ -64,14 +50,14 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
 console.timeEnd('compile contract');
 
 console.time('settlement proof');
-let proof = await offchainState.createSettlementProof();
+let proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof');
 
 console.time('settle');

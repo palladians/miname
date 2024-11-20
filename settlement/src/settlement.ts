@@ -46,7 +46,7 @@ async function compile(zkAppKey: PrivateKey, minaEndpoint: string, archiveEndpoi
     Mina.setActiveInstance(Network);
 
     const nameservice = new NameService(zkAppAddress);
-    offchainState.setContractInstance(nameservice);
+    nameservice.offchainState.setContractInstance(nameservice);
     console.time("compile program");
     await offchainState.compile();
     console.timeEnd("compile program");

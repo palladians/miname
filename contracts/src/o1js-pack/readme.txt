@@ -1,1 +1,0 @@
-As a workaround to https://github.com/o1-labs/o1js/issues/1651 , we are copying the relevant code over from o1js-pack into this repo

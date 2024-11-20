@@ -1,18 +1,14 @@
 import fs from 'fs/promises';
 import {
   AccountUpdate,
-  Field,
   Mina,
   PrivateKey,
   UInt64,
   NetworkId,
+  Provable,
+  Field,
 } from 'o1js';
-import {
-  NameService,
-  NameRecord,
-  offchainState,
-  Name,
-} from '../../NameService.js';
+import { NameService, offchainState, Premium } from '../../NameService.js';
 
 // check command line arg
 let deployAlias = process.argv[2];
@@ -61,7 +57,7 @@ let name_service_contract = new NameService(zkAppAddress);
 
 console.time('compile program');
 await offchainState.compile();
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 console.timeEnd('compile program');
 console.time('compile contract');
 await NameService.compile();
@@ -81,7 +77,7 @@ console.timeEnd('deploy');
 
 console.time('set premimum rate');
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
-  await name_service_contract.set_premium(UInt64.from(100));
+  await name_service_contract.set_premium(new Premium([6, 5, 4, 3, 2, 1]));
 })
   .sign([feepayerKey])
   .prove()
@@ -91,7 +87,7 @@ console.log(tx.toPretty());
 console.timeEnd('set premimum rate');
 
 console.time('settlement proof');
-let proof = await offchainState.createSettlementProof();
+let proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof');
 
 console.time('settle');
@@ -108,7 +104,7 @@ console.timeEnd('settle');
 console.time('get premimum rate');
 let res;
 tx = await Mina.transaction({ sender: feepayerAddress, fee: fee }, async () => {
-  res = await name_service_contract.premium_rate();
+  res = await name_service_contract.premium_rate(Field(3));
 })
   .sign([feepayerKey])
   .prove()

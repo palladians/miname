@@ -1,5 +1,11 @@
-import { AccountUpdate, Field, Mina, PrivateKey, UInt64 } from 'o1js';
-import { NameService, NameRecord, offchainState, Name } from '../NameService.js';
+import { AccountUpdate, Field, Mina, PrivateKey, Provable, UInt64 } from 'o1js';
+import {
+  NameService,
+  NameRecord,
+  offchainState,
+  Name,
+  Premium,
+} from '../NameService.js';
 
 const Local = await Mina.LocalBlockchain({ proofsEnabled: true });
 Mina.setActiveInstance(Local);
@@ -10,12 +16,12 @@ let [bob, alice, eve] = Local.testAccounts;
 const zkAppPrivateKey = PrivateKey.random();
 const zkAppAddress = zkAppPrivateKey.toPublicKey();
 let name_service_contract = new NameService(zkAppAddress);
-offchainState.setContractInstance(name_service_contract);
+name_service_contract.offchainState.setContractInstance(name_service_contract);
 
 if (Local.proofsEnabled) {
   console.time('compile program');
   await offchainState.compile();
-  offchainState.setContractClass(NameService);
+  name_service_contract.offchainState.setContractClass(NameService);
   console.timeEnd('compile program');
   console.time('compile contract');
   await NameService.compile();
@@ -35,16 +41,16 @@ console.timeEnd('deploy');
 
 console.time('set premimum rate');
 await Mina.transaction(bob, async () => {
-  await name_service_contract.set_premium(UInt64.from(100));
+  await name_service_contract.set_premium(new Premium([6, 5, 4, 3, 2, 1]));
 })
   .sign([bob.key])
   .prove()
   .send();
 console.log(tx.toPretty());
-console.timeEnd('register first name');
+console.timeEnd('set premium rate');
 
 console.time('settlement proof 1');
-let proof = await offchainState.createSettlementProof();
+let proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof 1');
 
 console.time('settle 1');
@@ -110,7 +116,7 @@ console.log(tx.toPretty());
 console.timeEnd('register another name for bob');
 
 console.time('settlement proof 2');
-proof = await offchainState.createSettlementProof();
+proof = await name_service_contract.offchainState.createSettlementProof();
 console.timeEnd('settlement proof 2');
 
 console.time('settle 2');
